@@ -85,10 +85,10 @@ export function WalletView({ wallet }) {
     fee + value <= balance;
 
   return html`<div class="view">
-    <div><b>${wallet.getAddress()}</b></div>
+    <div style="margin-bottom: 10px;"><b>${wallet.getAddress()}</b></div>
     <div style="margin-bottom: 10px;">
       ${balance !== null
-        ? html`${balance} satoshi ~ ${satToBtcStr(balance)} btc`
+        ? html`${satToBtcStr(balance)} btc = ${balance} sat`
         : html`<${Spinner} />`}
     </div>
     ${utxos
