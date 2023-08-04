@@ -1,4 +1,4 @@
-import { parseHexToBuf } from "../utils/array-bigint.mjs";
+import { parseHexToBuf } from "../utils/arraybuffer-hex.mjs";
 
 export const protocolVersion = new Uint8Array([0xf9, 0xbe, 0xb4, 0xd9]).buffer;
 

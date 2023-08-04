@@ -6,8 +6,7 @@ import { packTx } from "./bitcoin/protocol/messages.create.mjs";
 import {
   arrayToBigint,
   bigintToArray,
-  bufToHex,
-} from "./bitcoin/utils/array-bigint.mjs";
+} from "./bitcoin/utils/arraybuffer-bigint.mjs";
 import { bitcoin_address_P2WPKH_from_public_key } from "./bitcoin/utils/bech32/address.mjs";
 
 export class BitcoinWallet {

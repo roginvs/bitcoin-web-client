@@ -1,4 +1,4 @@
-import { bufToHex, parseHexToBuf } from "../utils/array-bigint.mjs";
+import { bufToHex, parseHexToBuf } from "../utils/arraybuffer-hex.mjs";
 import { joinBuffers } from "../utils/joinBuffers.mjs";
 
 /**

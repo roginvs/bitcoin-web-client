@@ -1,4 +1,5 @@
-import { arrayToBigint, parseHexToBuf } from "./bitcoin/utils/array-bigint.mjs";
+import { arrayToBigint } from "./bitcoin/utils/arraybuffer-bigint.mjs";
+import { parseHexToBuf } from "./bitcoin/utils/arraybuffer-hex.mjs";
 import { html } from "./htm.mjs";
 import { useState } from "./thirdparty/hooks.mjs";
 import { BitcoinWallet } from "./wallet.mjs";
