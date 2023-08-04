@@ -28,7 +28,7 @@ function btcStrToSat(str) {
   const beforeDot = str.slice(0, dotIdx);
   const afterDot = str.slice(dotIdx + 1).padEnd(8, "0");
   if (afterDot.length > 8) {
-    return 0;
+    return null;
   }
   return parseInt(beforeDot + afterDot);
 }
@@ -54,11 +54,35 @@ export function WalletView({ wallet }) {
     });
   }, [wallet]);
 
-  const [feeStr, setFee] = useState("0.00005");
+  const [valueStr, setValueStr] = useState("");
+  const [feeStr, setFeeStr] = useState("0.00005");
+
+  const fee = btcStrToSat(feeStr);
+  const value = btcStrToSat(valueStr);
 
   const onMaxClick = () => {
-    console.info("kek");
+    if (!balance) {
+      setValueStr("0");
+      return;
+    }
+    if (fee === null) {
+      setValueStr("0");
+      return;
+    }
+    const value = balance - fee;
+    if (value < 0) {
+      setValueStr("0");
+      return;
+    }
+    setValueStr(satToBtcStr(value));
   };
+  const isSendAvailable =
+    balance &&
+    fee !== null &&
+    value !== null &&
+    fee > 0 &&
+    value > 0 &&
+    fee + value <= balance;
 
   return html`<div class="view">
     <div><b>${wallet.getAddress()}</b></div>
@@ -92,6 +116,10 @@ export function WalletView({ wallet }) {
                 style="width: 100%"
                 type="text"
                 placeholder="Enter btc amount"
+                value=${valueStr}
+                onInput=${(/** @type {any} */ e) => {
+                  setValueStr(e.target.value);
+                }}
               />
               <button class="btn" onClick=${onMaxClick}>max</button>
             </div>
@@ -102,17 +130,17 @@ export function WalletView({ wallet }) {
                 placeholder="Fee"
                 value=${feeStr}
                 onInput=${(/** @type {any} */ e) => {
-                  setFee(e.target.value);
+                  setFeeStr(e.target.value);
                 }}
               />
-              <button class="btn" onClick=${() => setFee("0.00005")}>
+              <button class="btn" onClick=${() => setFeeStr("0.00005")}>
                 5000sat
               </button>
-              <button class="btn" onClick=${() => setFee("0.0001")}>
+              <button class="btn" onClick=${() => setFeeStr("0.0001")}>
                 10000sat
               </button>
             </div>
-            <button class="btn">Send</button>
+            <button class="btn" disabled=${!isSendAvailable}>Send</button>
           </div>
         `
       : ""}
