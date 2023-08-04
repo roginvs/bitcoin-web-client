@@ -18,6 +18,23 @@ function satToBtcStr(sat) {
 
 /**
  *
+ * @param {string} str
+ */
+function btcStrToSat(str) {
+  let dotIdx = str.indexOf(".");
+  if (dotIdx < 0) {
+    dotIdx = str.length;
+  }
+  const beforeDot = str.slice(0, dotIdx);
+  const afterDot = str.slice(dotIdx + 1).padEnd(8, "0");
+  if (afterDot.length > 8) {
+    return 0;
+  }
+  return parseInt(beforeDot + afterDot);
+}
+
+/**
+ *
  * @param {{wallet: BitcoinWallet}} props
  */
 export function WalletView({ wallet }) {
@@ -37,6 +54,8 @@ export function WalletView({ wallet }) {
     });
   }, [wallet]);
 
+  const [feeStr, setFee] = useState("0.00005");
+
   const onMaxClick = () => {
     console.info("kek");
   };
@@ -45,8 +64,7 @@ export function WalletView({ wallet }) {
     <div><b>${wallet.getAddress()}</b></div>
     <div style="margin-bottom: 10px;">
       ${balance !== null
-        ? // TODO: Do not use arithmetic
-          html`${balance} satoshi ~ ${balance / 100_000_000} btc`
+        ? html`${balance} satoshi ~ ${satToBtcStr(balance)} btc`
         : html`<${Spinner} />`}
     </div>
     ${utxos
@@ -82,10 +100,17 @@ export function WalletView({ wallet }) {
                 style="width: 100%"
                 type="text"
                 placeholder="Fee"
-                value="0.00005"
+                value=${feeStr}
+                onInput=${(/** @type {any} */ e) => {
+                  setFee(e.target.value);
+                }}
               />
-              <button class="btn">5000sat</button>
-              <button class="btn">10000sat</button>
+              <button class="btn" onClick=${() => setFee("0.00005")}>
+                5000sat
+              </button>
+              <button class="btn" onClick=${() => setFee("0.0001")}>
+                10000sat
+              </button>
             </div>
             <button class="btn">Send</button>
           </div>
