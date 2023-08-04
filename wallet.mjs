@@ -13,7 +13,7 @@ export class BitcoinWallet {
    * @returns {Promise<import("./wallet.defs.mjs").Utxo[]>}
    */
   async getUtxo() {
-    await new Promise((r) => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 100));
     return [
       {
         /** @type {any} */

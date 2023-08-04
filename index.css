@@ -22,3 +22,15 @@
 .btn {
   font-family: monospace;
 }
+
+.send_view {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  flex-direction: column;
+  gap: 5px;
+}
+.flex_row {
+  display: flex;
+  flex-direction: row;
+}
