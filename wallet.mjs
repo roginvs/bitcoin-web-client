@@ -1,13 +1,29 @@
+import { modulo_power_point } from "./bitcoin/my-elliptic-curves/curves.mjs";
+import { Secp256k1 } from "./bitcoin/my-elliptic-curves/curves.named.mjs";
+import { arrayToBigint } from "./bitcoin/utils/array-bigint.mjs";
+
 export class BitcoinWallet {
   /**
    *
-   * @param {Uint8Array} privKey
+   * @param {Uint8Array | bigint} privKey
    */
   constructor(privKey) {
-    this.#privkey = privKey;
+    this.#privkey =
+      typeof privKey === "bigint" ? privKey : arrayToBigint(privKey);
+    this.#publicKeyPoint = modulo_power_point(
+      Secp256k1.G,
+      this.#privkey,
+      Secp256k1.a,
+      Secp256k1.p
+    );
+    if (!this.#publicKeyPoint) {
+      throw new Error(`Got zero as pub key!`);
+    }
   }
-  /** @type {Uint8Array} */
+  /** @type {bigint} */
   #privkey;
+  /** @type {import("./bitcoin/my-elliptic-curves/curves.types").Point} */
+  #publicKeyPoint;
 
   /**
    * @returns {Promise<import("./wallet.defs.mjs").Utxo[]>}
