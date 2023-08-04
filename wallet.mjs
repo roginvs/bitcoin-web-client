@@ -10,20 +10,22 @@ export class BitcoinWallet {
   constructor(privKey) {
     this.#privkey =
       typeof privKey === "bigint" ? privKey : arrayToBigint(privKey);
-    this.#publicKeyPoint = modulo_power_point(
+  }
+  /** @type {bigint} */
+  #privkey;
+
+  #getPublicPoint() {
+    const publicKeyPoint = modulo_power_point(
       Secp256k1.G,
       this.#privkey,
       Secp256k1.a,
       Secp256k1.p
     );
-    if (!this.#publicKeyPoint) {
+    if (!publicKeyPoint) {
       throw new Error(`Got zero as pub key!`);
     }
+    return publicKeyPoint;
   }
-  /** @type {bigint} */
-  #privkey;
-  /** @type {import("./bitcoin/my-elliptic-curves/curves.types").Point} */
-  #publicKeyPoint;
 
   /**
    * @returns {Promise<import("./wallet.defs.mjs").Utxo[]>}
@@ -71,6 +73,7 @@ export class BitcoinWallet {
   }
 
   getAddress() {
+    // asd
     return "3hereiswalletaddress";
   }
 }

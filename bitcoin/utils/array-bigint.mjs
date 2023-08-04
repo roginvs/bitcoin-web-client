@@ -16,6 +16,33 @@ export function arrayToBigint(buf) {
 
 /**
  *
+ * @param {bigint} int
+ * @returns {ArrayBuffer}
+ */
+export function bigintToArray(int) {
+  /** @type {number[]} */
+  const arr = [];
+  while (int > 0n) {
+    const digit = int % 256n;
+    int = int / 256n;
+    arr.unshift(Number(digit));
+  }
+
+  return new Uint8Array(arr).buffer;
+}
+
+/**
+ *
+ * @param {ArrayBuffer} buf
+ */
+export function bufToHex(buf) {
+  return new Uint8Array(buf).reduce(function (hex, byte) {
+    return hex + byte.toString(16).padStart(2, "0");
+  }, "");
+}
+
+/**
+ *
  * @param {string} hex
  * @returns {ArrayBuffer}
  */
