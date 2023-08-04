@@ -6,7 +6,7 @@
  * @returns {ArrayBuffer}
  */
 export function ripemd160(data) {
-  const ripemd160 = RIPEMD160.create();
+  const ripemd160 = new _RIPEMD160();
   ripemd160.update(new Uint8Array(data));
   return ripemd160.digest().buffer;
 }
@@ -250,10 +250,6 @@ class _RIPEMD160 {
     return buffer;
   }
 }
-
-RIPEMD160.create = function () {
-  return new _RIPEMD160();
-};
 
 /**
  * @param {number} x

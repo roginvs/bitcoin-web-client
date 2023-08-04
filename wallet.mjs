@@ -1,6 +1,13 @@
 import { modulo_power_point } from "./bitcoin/my-elliptic-curves/curves.mjs";
 import { Secp256k1 } from "./bitcoin/my-elliptic-curves/curves.named.mjs";
-import { arrayToBigint } from "./bitcoin/utils/array-bigint.mjs";
+import { ripemd160 } from "./bitcoin/my-hashes/ripemd160.mjs";
+import { sha256 } from "./bitcoin/my-hashes/sha256.mjs";
+import {
+  arrayToBigint,
+  bigintToArray,
+  bufToHex,
+} from "./bitcoin/utils/array-bigint.mjs";
+import { bitcoin_address_P2WPKH_from_public_key } from "./bitcoin/utils/bech32/address.mjs";
 
 export class BitcoinWallet {
   /**
@@ -25,6 +32,14 @@ export class BitcoinWallet {
       throw new Error(`Got zero as pub key!`);
     }
     return publicKeyPoint;
+  }
+  #getCompressedPubkey() {
+    const point = this.#getPublicPoint();
+    const buf = bigintToArray(point[0]);
+    const out = new Uint8Array(new ArrayBuffer(buf.byteLength + 1));
+    out.set(new Uint8Array(buf), 1);
+    out[0] = point[1] % 2n == 0n ? 2 : 3;
+    return out.buffer;
   }
 
   /**
@@ -73,7 +88,11 @@ export class BitcoinWallet {
   }
 
   getAddress() {
-    // asd
-    return "3hereiswalletaddress";
+    const pubKey = this.#getCompressedPubkey();
+    const address = bitcoin_address_P2WPKH_from_public_key(pubKey);
+    if (!address) {
+      throw new Error(`Something wrong with address`);
+    }
+    return address;
   }
 }

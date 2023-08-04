@@ -1,4 +1,5 @@
-export type Point = null | readonly [bigint, bigint];
+export type NonZeroPoint = readonly [bigint, bigint];
+export type Point = null | NonZeroPoint;
 export interface CurveParams {
   p: bigint;
   a: bigint;
