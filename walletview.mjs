@@ -39,7 +39,7 @@ function btcStrToSat(str) {
  */
 export function WalletView({ wallet }) {
   const [utxos, setUtxos] = useState(
-    /** @type {null | import("./wallet.defs.mjs").Utxo[]} */
+    /** @type {null | import("./wallet.defs.js").Utxo[]} */
     (null)
   );
   const [balance, setBalance] = useState(/** @type {null | number} */ (null));

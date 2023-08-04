@@ -1,5 +1,4 @@
-export type BlockHash = string & { _nominal: "block hash" };
-export type TxId = string & { _nominal: "tx id" };
+import { BlockHash, TransactionHash } from "./bitcoin/protocol/messages.types";
 
 export type UtxoStatus = {
   confirmed: boolean;
@@ -8,7 +7,7 @@ export type UtxoStatus = {
   block_time: number;
 };
 export type Utxo = {
-  txid: TxId;
+  txid: TransactionHash;
   vout: number;
   status: UtxoStatus;
   value: number;

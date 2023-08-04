@@ -2,6 +2,7 @@ import { modulo_power_point } from "./bitcoin/my-elliptic-curves/curves.mjs";
 import { Secp256k1 } from "./bitcoin/my-elliptic-curves/curves.named.mjs";
 import { ripemd160 } from "./bitcoin/my-hashes/ripemd160.mjs";
 import { sha256 } from "./bitcoin/my-hashes/sha256.mjs";
+import { packTx } from "./bitcoin/protocol/messages.create.mjs";
 import {
   arrayToBigint,
   bigintToArray,
@@ -43,7 +44,7 @@ export class BitcoinWallet {
   }
 
   /**
-   * @returns {Promise<import("./wallet.defs.mjs").Utxo[]>}
+   * @returns {Promise<import("./wallet.defs.js").Utxo[]>}
    */
   async getUtxo() {
     await new Promise((r) => setTimeout(r, 100));

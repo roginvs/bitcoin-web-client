@@ -44,15 +44,18 @@ export function bufToHex(buf) {
 /**
  *
  * @param {string} hex
+ * @param {boolean} [isReversed=false]
  * @returns {ArrayBuffer}
  */
-export function parseHexToBuf(hex) {
+export function parseHexToBuf(hex, isReversed = false) {
   const m = hex.match(/../g);
   if (!m) {
     throw new Error(`No match!`);
   }
-  return new Uint8Array(m.map((x) => parseInt(x, 16))).buffer;
+  const values = !isReversed ? m : [...m].reverse();
+  return new Uint8Array(values.map((x) => parseInt(x, 16))).buffer;
 }
+
 /*
 
 
