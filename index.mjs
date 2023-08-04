@@ -4,4 +4,4 @@ import { h, Component, render } from "./thirdparty/preact.mjs";
 import { html } from "./htm.mjs";
 import { App } from "./app.mjs";
 
-render(html`<${App} name="World" />`, document.body);
+render(html`<${App} />`, document.body);

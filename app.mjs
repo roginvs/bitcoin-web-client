@@ -1,10 +1,14 @@
 import { html } from "./htm.mjs";
 import { useState } from "./thirdparty/hooks.mjs";
+import { BitcoinWallet } from "./wallet.mjs";
+import { WalletView } from "./walletview.mjs";
 
 /**
  *
- * @param {{name: string}} props
+ * @param {{}} props
  */
 export function App(props) {
-  return html`<h1>Hello ${props.name}!</h1>`;
+  const [wallet] = useState(new BitcoinWallet(new Uint8Array([3])));
+
+  return html`<${WalletView} wallet=${wallet} />`;
 }
