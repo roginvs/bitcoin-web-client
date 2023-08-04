@@ -10,5 +10,5 @@ import { WalletView } from "./walletview.mjs";
 export function App(props) {
   const [wallet] = useState(new BitcoinWallet(new Uint8Array([3])));
 
-  return html`<${WalletView} wallet=${wallet} />`;
+  return html`<div class="container"><${WalletView} wallet=${wallet} /></div>`;
 }
