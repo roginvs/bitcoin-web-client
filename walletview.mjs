@@ -75,7 +75,9 @@ export function WalletView({ wallet }) {
     setValueStr(satToBtcStr(value));
   };
 
-  const [dstAddr, setDstAddr] = useState("");
+  const [dstAddr, setDstAddr] = useState(
+    "bc1q3sy4uhguqr43avkc2a26a8xrukp4z9l4jyzt4l"
+  );
 
   const isSendAvailable =
     dstAddr &&
@@ -128,52 +130,54 @@ export function WalletView({ wallet }) {
             )}
           </div>
 
-          <div class="send_view">
-            <input
-              type="text"
-              placeholder="Enter address"
-              value=${dstAddr}
-              onInput=${(/** @type {any} */ e) => {
-                setDstAddr(e.target.value);
-              }}
-            />
-            <div class="flex_row">
-              <input
-                style="width: 100%"
-                type="text"
-                placeholder="Enter btc amount"
-                value=${valueStr}
-                onInput=${(/** @type {any} */ e) => {
-                  setValueStr(e.target.value);
-                }}
-              />
-              <button class="btn" onClick=${onMaxClick}>max</button>
-            </div>
-            <div class="flex_row">
-              <input
-                style="width: 100%"
-                type="text"
-                placeholder="Fee"
-                value=${feeStr}
-                onInput=${(/** @type {any} */ e) => {
-                  setFeeStr(e.target.value);
-                }}
-              />
-              <button class="btn" onClick=${() => setFeeStr("0.00005")}>
-                5000sat
-              </button>
-              <button class="btn" onClick=${() => setFeeStr("0.0001")}>
-                10000sat
-              </button>
-            </div>
-            <button
-              class="btn"
-              disabled=${!isSendAvailable}
-              onClick=${onSendClick}
-            >
-              Send
-            </button>
-          </div>
+          ${!readyTx
+            ? html`<div class="send_view">
+                <input
+                  type="text"
+                  placeholder="Enter address"
+                  value=${dstAddr}
+                  onInput=${(/** @type {any} */ e) => {
+                    setDstAddr(e.target.value);
+                  }}
+                />
+                <div class="flex_row">
+                  <input
+                    style="width: 100%"
+                    type="text"
+                    placeholder="Enter btc amount"
+                    value=${valueStr}
+                    onInput=${(/** @type {any} */ e) => {
+                      setValueStr(e.target.value);
+                    }}
+                  />
+                  <button class="btn" onClick=${onMaxClick}>max</button>
+                </div>
+                <div class="flex_row">
+                  <input
+                    style="width: 100%"
+                    type="text"
+                    placeholder="Fee"
+                    value=${feeStr}
+                    onInput=${(/** @type {any} */ e) => {
+                      setFeeStr(e.target.value);
+                    }}
+                  />
+                  <button class="btn" onClick=${() => setFeeStr("0.00005")}>
+                    5000sat
+                  </button>
+                  <button class="btn" onClick=${() => setFeeStr("0.0001")}>
+                    10000sat
+                  </button>
+                </div>
+                <button
+                  class="btn"
+                  disabled=${!isSendAvailable}
+                  onClick=${onSendClick}
+                >
+                  Send
+                </button>
+              </div>`
+            : "kek"}
         `
       : ""}
   </div>`;
