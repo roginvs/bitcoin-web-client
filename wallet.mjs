@@ -46,6 +46,9 @@ export class BitcoinWallet {
    * @returns {Promise<import("./wallet.defs.js").Utxo[]>}
    */
   async getUtxo() {
+    const url = `https://blockstream.info/api/address/${this.getAddress()}/utxo`;
+    //return await fetch(url).then((res) => res.json());
+
     await new Promise((r) => setTimeout(r, 100));
     return [
       {

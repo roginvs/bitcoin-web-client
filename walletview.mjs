@@ -97,11 +97,15 @@ export function WalletView({ wallet }) {
             ${utxos.map(
               (utxo) =>
                 html`<div>
-                  ${utxo.value} sat at${" "}
+                  ${utxo.value < DUST_LIMIT
+                    ? html`<s title="dust">${utxo.value}</s>`
+                    : utxo.value}
+                  ${" "}sat at${" "}
                   ${new Date(
                     utxo.status.block_time * 1000
                   ).toLocaleString()}${" "}
                   <a
+                    target="_blank"
                     href="https://www.blockchain.com/ru/explorer/transactions/btc/${utxo.txid}"
                     >${utxo.txid.slice(0, 8)}</a
                   >
