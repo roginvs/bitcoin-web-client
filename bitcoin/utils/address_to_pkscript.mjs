@@ -19,7 +19,7 @@ export function addressToPkScript(addr) {
     }
     const buf = new Uint8Array([0, decoded.program.length, ...decoded.program]);
     return buf;
-  } else if (addr.startsWith("1")) {
+  } else if (addr.startsWith("1") || addr.startsWith("3")) {
     const buf = base58decode(addr);
     const withNetId = buf.slice(0, buf.byteLength - 4);
     const checksum = buf.slice(buf.byteLength - 4);
@@ -27,21 +27,35 @@ export function addressToPkScript(addr) {
     if (bufToHex(checksum) !== bufToHex(hash)) {
       throw new Error(`Checksum verification failed`);
     }
-    if (new Uint8Array(withNetId)[0] !== 0) {
-      throw new Error(`Not a mainnet address!`);
-    }
+
     const data = withNetId.slice(1);
-    if (data.byteLength !== 0x14) {
-      throw new Error(`Wrong data length`);
+
+    if (addr.startsWith("1")) {
+      if (new Uint8Array(withNetId)[0] !== 0) {
+        throw new Error(`Not a mainnet address!`);
+      }
+
+      if (data.byteLength !== 0x14) {
+        throw new Error(`Wrong data length`);
+      }
+      return new Uint8Array([
+        0x76,
+        0xa9,
+        0x14,
+        ...new Uint8Array(data),
+        0x88,
+        0xac,
+      ]);
+    } else {
+      if (new Uint8Array(withNetId)[0] !== 5) {
+        throw new Error(`Not a mainnet address!`);
+      }
+
+      if (data.byteLength !== 0x14) {
+        throw new Error(`Wrong data length`);
+      }
+      return new Uint8Array([0xa9, 0x14, ...new Uint8Array(data), 0x87]);
     }
-    return new Uint8Array([
-      0x76,
-      0xa9,
-      0x14,
-      ...new Uint8Array(data),
-      0x88,
-      0xac,
-    ]);
   }
 
   throw new Error(`Not implemented yet!`);
@@ -51,7 +65,7 @@ describe(`addressToPkScript`, () => {
   eq(
     bufToHex(addressToPkScript("bc1qnnadqr2q2ycw5n52f4wnsxju3fry973wvewf6q")),
     "00149cfad00d405130ea4e8a4d5d381a5c8a4642fa2e",
-    "P2WPKH address"
+    "P2WPKH"
   );
   eq(
     bufToHex(
@@ -60,11 +74,17 @@ describe(`addressToPkScript`, () => {
       )
     ),
     "0020cdbf909e935c855d3e8d1b61aeb9c5e3c03ae8021b286839b1a72f2e48fdba70",
-    "P2WSH address"
+    "P2WSH"
   );
   eq(
     bufToHex(addressToPkScript("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2")),
     "76a91477bff20c60e522dfaa3350c39b030a5d004e839a88ac",
     "P2PKH"
+  );
+
+  eq(
+    bufToHex(addressToPkScript("3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy")),
+    "a914b472a266d0bd89c13706a4132ccfb16f7c3b9fcb87",
+    "P2SH"
   );
 });
