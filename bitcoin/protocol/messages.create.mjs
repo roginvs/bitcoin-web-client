@@ -1,3 +1,4 @@
+import { describe, eq } from "../tests.mjs";
 import { bufToHex, parseHexToBuf } from "../utils/arraybuffer-hex.mjs";
 import { joinBuffers } from "../utils/joinBuffers.mjs";
 
@@ -102,7 +103,7 @@ export function packTx(tx) {
   return /** @type {import("./messages.types").TransactionPayload} */ (result);
 }
 
-function test() {
+describe(`Pack sample tx`, () => {
   const tx = {
     version: 2,
     txIn: [
@@ -151,12 +152,10 @@ function test() {
   };
 
   const packed = bufToHex(packTx(/** @type {any} */ (tx)));
-  if (
-    packed !==
-    "020000000001019b1ff02b6d2d72bb48bed76eed11109d9dc6b3d91f3bafb6be3564967d3a561d0100000000feffffff02a00f000000000000220020ee6bb86b44339392bae631c8f61dd8f009243c635adab33c0b20923a2794bf22438e0000000000001600149cfad00d405130ea4e8a4d5d381a5c8a4642fa2e0247304402205e0e3b114ca3c888c1f697c8a2d9a447758876a56f0cf0b1ea43a15638e36f2d02202739791dca0c833d61d1255096ef1f648868ff3b4ba2483467b5e8caf2a4de6c0121033af4fdd4e09d642d18e2d7137cce3070c2a3a7387985d5c4f56ee76a617a4e1600000000"
-  ) {
-    throw new Error("Packed incorrectly");
-  } else {
-    console.info(`Test: packed ok`);
-  }
-}
+
+  eq(
+    packed,
+    "020000000001019b1ff02b6d2d72bb48bed76eed11109d9dc6b3d91f3bafb6be3564967d3a561d0100000000feffffff02a00f000000000000220020ee6bb86b44339392bae631c8f61dd8f009243c635adab33c0b20923a2794bf22438e0000000000001600149cfad00d405130ea4e8a4d5d381a5c8a4642fa2e0247304402205e0e3b114ca3c888c1f697c8a2d9a447758876a56f0cf0b1ea43a15638e36f2d02202739791dca0c833d61d1255096ef1f648868ff3b4ba2483467b5e8caf2a4de6c0121033af4fdd4e09d642d18e2d7137cce3070c2a3a7387985d5c4f56ee76a617a4e1600000000",
+    "Packed tx"
+  );
+});

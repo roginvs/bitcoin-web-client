@@ -3,6 +3,7 @@ import { Secp256k1 } from "./bitcoin/my-elliptic-curves/curves.named.mjs";
 import { ripemd160 } from "./bitcoin/my-hashes/ripemd160.mjs";
 import { sha256 } from "./bitcoin/my-hashes/sha256.mjs";
 import { packTx } from "./bitcoin/protocol/messages.create.mjs";
+import { addressToPkScript } from "./bitcoin/utils/address_to_pkscript.mjs";
 import {
   arrayToBigint,
   bigintToArray,
@@ -80,6 +81,16 @@ export class BitcoinWallet {
         value: 26433,
       },
     ];
+  }
+
+  /**
+   *
+   * @param {string} dstAddr
+   * @param {number} amount
+   * @param {number} fee
+   */
+  async createTx(dstAddr, amount, fee) {
+    //
   }
 
   /**
