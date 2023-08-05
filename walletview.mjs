@@ -101,7 +101,7 @@ export function WalletView({ wallet }) {
     setReadyTx(tx);
   };
 
-  return html`<div class="view">
+  return html`<div class="view flex_column_center">
     <div style="margin-bottom: 10px;"><b>${wallet.getAddress()}</b></div>
     <div style="margin-bottom: 10px;">
       ${balance !== null
@@ -130,7 +130,7 @@ export function WalletView({ wallet }) {
             )}
           </div>
 
-          ${!readyTx
+          ${!(readyTx && balance && fee && value)
             ? html`<div class="send_view">
                 <input
                   type="text"
@@ -177,7 +177,27 @@ export function WalletView({ wallet }) {
                   Send
                 </button>
               </div>`
-            : "kek"}
+            : html`
+                <div class="send_view">
+                  <div class="tx_confirm_row">
+                    <span>Destination:</span>
+                    <b>${dstAddr}</b>
+                  </div>
+                  <div class="tx_confirm_row">
+                    <span>Value in BTC:</span>
+                    <b>${valueStr}</b>
+                  </div>
+
+                  <div class="tx_confirm_row">
+                    <span>Fee:</span>
+                    <b>${satToBtcStr(fee)}</b>
+                  </div>
+                  <div class="tx_confirm_row">
+                    <span>Remaining:</span>
+                    <b>${satToBtcStr(balance - value - fee)}</b>
+                  </div>
+                </div>
+              `}
         `
       : ""}
   </div>`;
