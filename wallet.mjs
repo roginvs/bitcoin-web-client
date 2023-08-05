@@ -101,12 +101,28 @@ export class BitcoinWallet {
    * @param {number} fee
    */
   createTx(utxos, dstAddr, amount, fee) {
-    const totalValue = utxos.reduce((acc, cur) => acc + cur.value, 0);
+    const possibleUtxos = utxos
+      .slice()
+      .filter((utxo) => !isDust(utxo))
+      .sort((a, b) => a.value - b.value);
+
+    const totalValue = possibleUtxos
+      .filter((utxo) => !isDust(utxo))
+      .reduce((acc, cur) => acc + cur.value, 0);
     if (totalValue < amount + fee) {
       throw new Error(`Total value is lower than amount and fee!`);
     }
-    if (utxos.some((x) => isDust(x))) {
-      throw new Error(`I will not spend dust utxo!`);
+    /** @type {typeof possibleUtxos} */
+    const spendingUtxos = [];
+    while (
+      spendingUtxos.reduce((acc, cur) => acc + cur.value, 0) <
+      amount + fee
+    ) {
+      const utxo = possibleUtxos.pop();
+      if (!utxo) {
+        throw new Error(`Internal error`);
+      }
+      spendingUtxos.push(utxo);
     }
 
     const dstPkScript = addressToPkScript(dstAddr);
@@ -119,7 +135,7 @@ export class BitcoinWallet {
     /** @type {import("./bitcoin/protocol/types.js").BitcoinTransaction} */
     const tx = {
       version: 2,
-      txIn: utxos.map((utxo) => ({
+      txIn: spendingUtxos.map((utxo) => ({
         outpointHash:
           /** @type {import("./bitcoin/protocol/messages.types.js").TransactionHash} */ (
             parseHexToBuf(utxo.txid)
