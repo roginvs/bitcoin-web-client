@@ -3,7 +3,10 @@ import { Secp256k1 } from "./bitcoin/my-elliptic-curves/curves.named.mjs";
 import { ripemd160 } from "./bitcoin/my-hashes/ripemd160.mjs";
 import { sha256 } from "./bitcoin/my-hashes/sha256.mjs";
 import { packTx } from "./bitcoin/protocol/messages.create.mjs";
-import { getOpChecksigSignatureValueWitness } from "./bitcoin/script/op_checksig_sigvalue_witness.mjs";
+import {
+  getOpChecksigSignatureValueWitness,
+  p2wpkhProgramForOpChecksig,
+} from "./bitcoin/script/op_checksig_sigvalue_witness.mjs";
 import { addressToPkScript } from "./bitcoin/utils/address_to_pkscript.mjs";
 import {
   arrayToBigint,
@@ -134,7 +137,7 @@ export class BitcoinWallet {
     const changeValue = totalValue - amount - fee;
 
     /** @type {import("./bitcoin/protocol/types.js").BitcoinTransaction} */
-    const tx = {
+    const spendingTx = {
       version: 2,
       txIn: spendingUtxos.map((utxo) => ({
         outpointHash:
@@ -187,8 +190,24 @@ export class BitcoinWallet {
         ),
     };
 
-    console.info(tx);
-    return tx;
+    console.info(spendingTx);
+
+    for (let i = 0; i < spendingUtxos.length; i++) {
+      const dataToSig = getOpChecksigSignatureValueWitness(
+        spendingTx,
+        i,
+        p2wpkhProgramForOpChecksig(changePkScript.slice(2)),
+        BigInt(spendingUtxos[i].value),
+        0x01
+      );
+      // TODO: create signature
+      //const signatureWithHashType = Buffer.concat([
+      //  signatureDer,
+      //  Buffer.from([0x01]),
+      //]);
+      // spendingTx.txIn[i].witness![0] = signatureWithHashType;
+    }
+    return spendingTx;
   }
 
   /**
