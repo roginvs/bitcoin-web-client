@@ -1,9 +1,7 @@
 import { html } from "./htm.mjs";
 import { Spinner } from "./spinner.mjs";
 import { useEffect, useState } from "./thirdparty/hooks.mjs";
-import { BitcoinWallet } from "./wallet.mjs";
-
-const DUST_LIMIT = 1000;
+import { BitcoinWallet, isDust } from "./wallet.mjs";
 
 /**
  *
@@ -48,7 +46,7 @@ export function WalletView({ wallet }) {
       setUtxos(utxos);
       setBalance(
         utxos
-          .filter((utxo) => utxo.value >= DUST_LIMIT)
+          .filter((utxo) => !isDust(utxo))
           .reduce((acc, cur) => acc + cur.value, 0)
       );
     });
@@ -76,13 +74,30 @@ export function WalletView({ wallet }) {
     }
     setValueStr(satToBtcStr(value));
   };
+
+  const [dstAddr, setDstAddr] = useState("");
+
   const isSendAvailable =
+    dstAddr &&
     balance &&
     fee !== null &&
     value !== null &&
     fee > 0 &&
     value > 0 &&
     fee + value <= balance;
+
+  const [readyTx, setReadyTx] = useState(
+    /** @type {import("./bitcoin/protocol/types.js").BitcoinTransaction| null} */ (
+      null
+    )
+  );
+  const onSendClick = () => {
+    if (!utxos || !value || !fee) {
+      return;
+    }
+    const tx = wallet.createTx(utxos, dstAddr, value, fee);
+    setReadyTx(tx);
+  };
 
   return html`<div class="view">
     <div style="margin-bottom: 10px;"><b>${wallet.getAddress()}</b></div>
@@ -97,7 +112,7 @@ export function WalletView({ wallet }) {
             ${utxos.map(
               (utxo) =>
                 html`<div>
-                  ${utxo.value < DUST_LIMIT
+                  ${isDust(utxo)
                     ? html`<s title="dust">${utxo.value}</s>`
                     : utxo.value}
                   ${" "}sat at${" "}
@@ -114,7 +129,14 @@ export function WalletView({ wallet }) {
           </div>
 
           <div class="send_view">
-            <input type="text" placeholder="Enter address" />
+            <input
+              type="text"
+              placeholder="Enter address"
+              value=${dstAddr}
+              onInput=${(/** @type {any} */ e) => {
+                setDstAddr(e.target.value);
+              }}
+            />
             <div class="flex_row">
               <input
                 style="width: 100%"
@@ -144,7 +166,13 @@ export function WalletView({ wallet }) {
                 10000sat
               </button>
             </div>
-            <button class="btn" disabled=${!isSendAvailable}>Send</button>
+            <button
+              class="btn"
+              disabled=${!isSendAvailable}
+              onClick=${onSendClick}
+            >
+              Send
+            </button>
           </div>
         `
       : ""}

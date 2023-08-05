@@ -7,6 +7,7 @@ import { decode } from "./bech32/segwit_addr.mjs";
 /**
  *
  * @param {string} addr
+ * @returns {import("../protocol/messages.types").PkScript}
  */
 export function addressToPkScript(addr) {
   if (addr.startsWith("bc1")) {
@@ -17,7 +18,9 @@ export function addressToPkScript(addr) {
     if (decoded.version !== 0) {
       throw new Error(`Unknown version`);
     }
-    const buf = new Uint8Array([0, decoded.program.length, ...decoded.program]);
+    const buf = /** @type {import("../protocol/messages.types").PkScript} */ (
+      new Uint8Array([0, decoded.program.length, ...decoded.program]).buffer
+    );
     return buf;
   } else if (addr.startsWith("1") || addr.startsWith("3")) {
     const buf = base58decode(addr);
@@ -38,14 +41,10 @@ export function addressToPkScript(addr) {
       if (data.byteLength !== 0x14) {
         throw new Error(`Wrong data length`);
       }
-      return new Uint8Array([
-        0x76,
-        0xa9,
-        0x14,
-        ...new Uint8Array(data),
-        0x88,
-        0xac,
-      ]);
+      return /** @type {import("../protocol/messages.types").PkScript} */ (
+        new Uint8Array([0x76, 0xa9, 0x14, ...new Uint8Array(data), 0x88, 0xac])
+          .buffer
+      );
     } else {
       if (new Uint8Array(withNetId)[0] !== 5) {
         throw new Error(`Not a mainnet address!`);
@@ -54,7 +53,9 @@ export function addressToPkScript(addr) {
       if (data.byteLength !== 0x14) {
         throw new Error(`Wrong data length`);
       }
-      return new Uint8Array([0xa9, 0x14, ...new Uint8Array(data), 0x87]);
+      return /** @type {import("../protocol/messages.types").PkScript} */ (
+        new Uint8Array([0xa9, 0x14, ...new Uint8Array(data), 0x87]).buffer
+      );
     }
   }
 

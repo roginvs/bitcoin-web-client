@@ -8,7 +8,17 @@ import {
   arrayToBigint,
   bigintToArray,
 } from "./bitcoin/utils/arraybuffer-bigint.mjs";
+import { parseHexToBuf } from "./bitcoin/utils/arraybuffer-hex.mjs";
 import { bitcoin_address_P2WPKH_from_public_key } from "./bitcoin/utils/bech32/address.mjs";
+
+const DUST_LIMIT = 1000;
+/**
+ *
+ * @param {import("./wallet.defs.js").Utxo} utxo
+ */
+export function isDust(utxo) {
+  return utxo.value < DUST_LIMIT;
+}
 
 export class BitcoinWallet {
   /**
@@ -85,12 +95,83 @@ export class BitcoinWallet {
 
   /**
    *
+   * @param {import("./wallet.defs.js").Utxo[]} utxos
    * @param {string} dstAddr
    * @param {number} amount
    * @param {number} fee
    */
-  async createTx(dstAddr, amount, fee) {
-    //
+  createTx(utxos, dstAddr, amount, fee) {
+    const totalValue = utxos.reduce((acc, cur) => acc + cur.value, 0);
+    if (totalValue < amount + fee) {
+      throw new Error(`Total value is lower than amount and fee!`);
+    }
+    if (utxos.some((x) => isDust(x))) {
+      throw new Error(`I will not spend dust utxo!`);
+    }
+
+    const dstPkScript = addressToPkScript(dstAddr);
+    const changePkScript = addressToPkScript(this.getAddress());
+
+    const myPublicKey = this.#getCompressedPubkey();
+
+    const changeValue = totalValue - amount - fee;
+
+    /** @type {import("./bitcoin/protocol/types.js").BitcoinTransaction} */
+    const tx = {
+      version: 2,
+      txIn: utxos.map((utxo) => ({
+        outpointHash:
+          /** @type {import("./bitcoin/protocol/messages.types.js").TransactionHash} */ (
+            parseHexToBuf(utxo.txid)
+          ),
+        outpointIndex: utxo.vout,
+        sequence: 0xfffffffe,
+        script:
+          /** @type {import("./bitcoin/protocol/messages.types.js").SignatureScript} */ (
+            new ArrayBuffer(0)
+          ),
+        witness: [
+          // This is signature+hashCodeType. Adding here to estimate size, we will replace it later
+          /** @type {import("./bitcoin/protocol/messages.types.js").WitnessStackItem} */ (
+            new ArrayBuffer(73)
+          ),
+          /** @type {import("./bitcoin/protocol/messages.types.js").WitnessStackItem} */ (
+            myPublicKey
+          ),
+        ],
+      })),
+
+      txOut: [
+        {
+          value: BigInt(amount),
+          script: dstPkScript,
+        },
+        ...(changeValue > DUST_LIMIT
+          ? [
+              {
+                value: BigInt(changeValue),
+                script: changePkScript,
+              },
+            ]
+          : []),
+      ],
+      lockTime: 0,
+      isWitness: true,
+      txid: /** @type {import("./bitcoin/protocol/messages.types.js").TransactionHash} */ (
+        new ArrayBuffer(0)
+      ),
+      wtxid:
+        /** @type {import("./bitcoin/protocol/messages.types.js").TransactionHash} */ (
+          new ArrayBuffer(0)
+        ),
+      payload:
+        /** @type {import("./bitcoin/protocol/messages.types.js").TransactionPayload} */ (
+          new ArrayBuffer(0)
+        ),
+    };
+
+    console.info(tx);
+    return tx;
   }
 
   /**
