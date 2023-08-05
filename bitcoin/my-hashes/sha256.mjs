@@ -75,7 +75,6 @@ export function and(a, b) {
 /**
  *
  * @param {ArrayBuffer} data
- * @returns
  */
 export function sha256(data) {
   const chunks = padMessage(data);
@@ -180,4 +179,12 @@ export function sha256(data) {
     out.setUint32(i * 4, hash[i], false);
   }
   return out.buffer;
+}
+
+/**
+ *
+ * @param {ArrayBuffer} data
+ */
+export function double_sha256(data) {
+  return sha256(sha256(data));
 }

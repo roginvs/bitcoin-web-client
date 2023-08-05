@@ -103,6 +103,16 @@ export function packTx(tx) {
   return /** @type {import("./messages.types").TransactionPayload} */ (result);
 }
 
+/**
+ *
+ * @param {number} val
+ */
+export function packUint32(val) {
+  const buf = new ArrayBuffer(4);
+  new DataView(buf).setUint32(0, val, true);
+  return buf;
+}
+
 describe(`Pack sample tx`, () => {
   const tx = {
     version: 2,
