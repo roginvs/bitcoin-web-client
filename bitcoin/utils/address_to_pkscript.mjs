@@ -1,5 +1,7 @@
+import { sha256 } from "../my-hashes/sha256.mjs";
 import { describe, eq } from "../tests.mjs";
 import { bufToHex } from "./arraybuffer-hex.mjs";
+import { base58decode } from "./base58.mjs";
 import { decode } from "./bech32/segwit_addr.mjs";
 
 /**
@@ -17,6 +19,29 @@ export function addressToPkScript(addr) {
     }
     const buf = new Uint8Array([0, decoded.program.length, ...decoded.program]);
     return buf;
+  } else if (addr.startsWith("1")) {
+    const buf = base58decode(addr);
+    const withNetId = buf.slice(0, buf.byteLength - 4);
+    const checksum = buf.slice(buf.byteLength - 4);
+    const hash = sha256(sha256(withNetId)).slice(0, 4);
+    if (bufToHex(checksum) !== bufToHex(hash)) {
+      throw new Error(`Checksum verification failed`);
+    }
+    if (new Uint8Array(withNetId)[0] !== 0) {
+      throw new Error(`Not a mainnet address!`);
+    }
+    const data = withNetId.slice(1);
+    if (data.byteLength !== 0x14) {
+      throw new Error(`Wrong data length`);
+    }
+    return new Uint8Array([
+      0x76,
+      0xa9,
+      0x14,
+      ...new Uint8Array(data),
+      0x88,
+      0xac,
+    ]);
   }
 
   throw new Error(`Not implemented yet!`);
@@ -36,5 +61,10 @@ describe(`addressToPkScript`, () => {
     ),
     "0020cdbf909e935c855d3e8d1b61aeb9c5e3c03ae8021b286839b1a72f2e48fdba70",
     "P2WSH address"
+  );
+  eq(
+    bufToHex(addressToPkScript("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2")),
+    "76a91477bff20c60e522dfaa3350c39b030a5d004e839a88ac",
+    "P2PKH"
   );
 });

@@ -1,3 +1,5 @@
+import { describe, eq } from "../tests.mjs";
+
 /**
  *
  * @param {ArrayBuffer} buf
@@ -22,3 +24,11 @@ export function parseHexToBuf(hex, isReversed = false) {
   const values = !isReversed ? m : [...m].reverse();
   return new Uint8Array(values.map((x) => parseInt(x, 16))).buffer;
 }
+
+describe(`bufToHex`, () => {
+  eq(bufToHex(new Uint8Array([0xaa, 0xbb, 0xcc])), "aabbcc");
+});
+
+describe(`parseHexToBuf`, () => {
+  eq(bufToHex(parseHexToBuf("aabbcc")), "aabbcc");
+});

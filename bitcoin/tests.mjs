@@ -1,23 +1,26 @@
 let failedTests = 0;
+function incFailedTests() {
+  if (failedTests === 0) {
+    setTimeout(() => {
+      alert(`${failedTests} tests failed!`);
+    }, 100);
+  }
+  failedTests++;
+}
 /**
  * Very simple and straightforward testing suite
  *
  * @template T
  * @param {T} a
  * @param {T} b
- * @param {string?} msg
+ * @param {string} [msg]
  */
 export function eq(a, b, msg) {
   if (a !== b) {
-    console.log(`%cFAIL ${msg}`, "color: red;");
-    if (failedTests === 0) {
-      setTimeout(() => {
-        alert(`${failedTests} tests failed!`);
-      }, 100);
-    }
-    failedTests++;
+    console.log(`%cFAIL ${msg || ""}: ${a} !== ${b}`, "color: red;");
+    incFailedTests();
   } else {
-    console.log(`ok ${msg}`);
+    console.log(`ok ${msg || ""}`);
   }
 }
 
@@ -33,7 +36,8 @@ export function describe(msg, cb) {
   console.log(`=== ${msg} ===`);
   try {
     cb();
-  } catch (e) {
-    console.log(`%cFAIL ${msg}`, "color: red;");
+  } catch (/** @type {any} */ e) {
+    console.log(`%cFAIL ${msg} ${e.name} ${e.message}`, "color: red;");
+    incFailedTests();
   }
 }
