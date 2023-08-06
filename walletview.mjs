@@ -4,7 +4,7 @@ import { bufToHex } from "./bitcoin/utils/arraybuffer-hex.mjs";
 import { pkScriptToAddress } from "./bitcoin/utils/pkscript_to_address.mjs";
 import { html } from "./htm.mjs";
 import { Spinner } from "./spinner.mjs";
-import { useEffect, useState } from "./thirdparty/hooks.mjs";
+import { useCallback, useEffect, useState } from "./thirdparty/hooks.mjs";
 import { BitcoinWallet, isDust } from "./wallet.mjs";
 
 /**
@@ -180,16 +180,22 @@ export function WalletView({ wallet }) {
     (null)
   );
   const [balance, setBalance] = useState(/** @type {null | number} */ (null));
+
+  const loadUtxos = useCallback(
+    () =>
+      wallet.getUtxo().then((utxos) => {
+        setUtxos(utxos);
+        setBalance(
+          utxos
+            .filter((utxo) => !isDust(utxo))
+            .reduce((acc, cur) => acc + cur.value, 0)
+        );
+      }),
+    [wallet]
+  );
   useEffect(() => {
-    wallet.getUtxo().then((utxos) => {
-      setUtxos(utxos);
-      setBalance(
-        utxos
-          .filter((utxo) => !isDust(utxo))
-          .reduce((acc, cur) => acc + cur.value, 0)
-      );
-    });
-  }, [wallet]);
+    loadUtxos();
+  }, [loadUtxos]);
 
   const [valueStr, setValueStr] = useState("0.0003");
   const [feeStr, setFeeStr] = useState("0.00005");
@@ -323,7 +329,11 @@ export function WalletView({ wallet }) {
                 wallet=${wallet}
                 txRaw=${readyTxWithSum[0]}
                 spendingSum=${readyTxWithSum[1]}
-                onClose=${() => setReadyTxWithSum(null)}
+                onClose=${() => {
+                  setReadyTxWithSum(null);
+                  setUtxos(null);
+                  loadUtxos();
+                }}
               />`}
         `
       : ""}
