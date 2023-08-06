@@ -1,3 +1,4 @@
+import { pkScriptToAddress } from "./bitcoin/utils/pkscript_to_address.mjs";
 import { html } from "./htm.mjs";
 import { Spinner } from "./spinner.mjs";
 import { useEffect, useState } from "./thirdparty/hooks.mjs";
@@ -32,7 +33,16 @@ function btcStrToSat(str) {
 }
 
 /**
- *
+ * @param {{
+ *   wallet: BitcoinWallet,
+ *   txRaw: import("./bitcoin/protocol/messages.types.js").TransactionPayload
+ * }} props
+ */
+function WalletTxSendView({ wallet }) {
+  // todo
+}
+
+/**
  * @param {{wallet: BitcoinWallet}} props
  */
 export function WalletView({ wallet }) {

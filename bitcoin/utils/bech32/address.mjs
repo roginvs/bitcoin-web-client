@@ -4,11 +4,6 @@ import { checkPublicKey } from "../checkPublicKey.mjs";
 import { encode } from "./segwit_addr.mjs";
 
 /**
- * @todo Import type!
- * @typedef {ArrayBuffer} PkScript
- */
-
-/**
  * @param {ArrayBuffer} pubKey
  */
 export function bitcoin_address_P2WPKH_from_public_key(pubKey) {
@@ -18,9 +13,8 @@ export function bitcoin_address_P2WPKH_from_public_key(pubKey) {
 }
 
 /**
- * 
- * @param {PkScript} pkscript 
- 
+ *
+ * @param {import("../../protocol/messages.types").PkScript} pkscript
  */
 export function bitcoin_address_P2WSH_from_pk_script(pkscript) {
   const scriptHash = sha256(pkscript);
@@ -29,13 +23,15 @@ export function bitcoin_address_P2WSH_from_pk_script(pkscript) {
 
 /**
  * This is what you should store in the outpoint
- * @param {PkScript} pkscript
- * @returns {PkScript}
+ * @param {import("../../protocol/messages.types").PkScript} pkscript
+ * @returns {import("../../protocol/messages.types").PkScript}
  *
  */
 export function get_P2WSH_pk_script_from_real_pk_script(pkscript) {
   const scriptHash = sha256(pkscript);
-  return new Uint8Array([0x00, 0x20, ...new Uint8Array(scriptHash)]).buffer;
+  return /** @type {import("../../protocol/messages.types").PkScript} */ (
+    new Uint8Array([0x00, 0x20, ...new Uint8Array(scriptHash)]).buffer
+  );
 }
 
 /**
@@ -44,12 +40,14 @@ export function get_P2WSH_pk_script_from_real_pk_script(pkscript) {
  *   must be in sigScript stack, not sigScript itself. Just prepend it with 0x16 (check BIP-0141)
  *
  * @param {ArrayBuffer} publicKey
- * @returns {PkScript}
+ * @returns {import("../../protocol/messages.types").PkScript}
  *
  */
 export function get_P2WPKH_pk_script_from_public_key(publicKey) {
   const hash = ripemd160(sha256(publicKey));
-  return new Uint8Array([0x00, 0x14, ...new Uint8Array(hash)]).buffer;
+  return /** @type {import("../../protocol/messages.types").PkScript} */ (
+    new Uint8Array([0x00, 0x14, ...new Uint8Array(hash)]).buffer
+  );
 }
 
 /** Creates a script with this public key
@@ -63,5 +61,9 @@ export function bitcoin_address_P2WSH_from_public_key(pubKey) {
     ...new Uint8Array(pubKey),
     0xac, // OP_CHECKSIG
   ]);
-  return bitcoin_address_P2WSH_from_pk_script(script);
+  return bitcoin_address_P2WSH_from_pk_script(
+    /** @type {import("../../protocol/messages.types").PkScript} */ (
+      script.buffer
+    )
+  );
 }
