@@ -1,6 +1,7 @@
 import { arrayToBigint } from "./bitcoin/utils/arraybuffer-bigint.mjs";
-import { parseHexToBuf } from "./bitcoin/utils/arraybuffer-hex.mjs";
+import { bufToHex, parseHexToBuf } from "./bitcoin/utils/arraybuffer-hex.mjs";
 import { html } from "./htm.mjs";
+import { LoginView } from "./loginview.mjs";
 import { useState } from "./thirdparty/hooks.mjs";
 import { BitcoinWallet } from "./wallet.mjs";
 import { WalletView } from "./walletview.mjs";
@@ -10,15 +11,37 @@ import { WalletView } from "./walletview.mjs";
  * @param {{}} props
  */
 export function App(props) {
-  const [wallet] = useState(() => {
+  const [wallet, setWallet] = useState(() => {
     const privateKeyHex = localStorage.getItem("private_key");
     if (!privateKeyHex) {
-      console.warn(`TODO: no saved private key`);
-      return new BitcoinWallet(new Uint8Array([3]));
+      return null;
     }
     const privKey = arrayToBigint(parseHexToBuf(privateKeyHex));
     return new BitcoinWallet(privKey);
   });
 
-  return html`<div class="container"><${WalletView} wallet=${wallet} /></div>`;
+  const onLogout = () => {
+    localStorage.removeItem("private_key");
+    document.location.reload();
+  };
+
+  const onLogin = (
+    /** @type {ArrayBuffer} */ key,
+    /** @type {boolean} */ isRemember
+  ) => {
+    if (isRemember) {
+      localStorage.setItem("private_key", bufToHex(key));
+    }
+    setWallet(new BitcoinWallet(arrayToBigint(key)));
+  };
+
+  if (!wallet) {
+    return html`<div class="container">
+      <${LoginView} onLogin=${onLogin} />
+    </div>`;
+  }
+
+  return html`<div class="container">
+    <${WalletView} wallet=${wallet} onLogout=${onLogout} />
+  </div>`;
 }

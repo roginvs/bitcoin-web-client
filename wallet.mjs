@@ -301,3 +301,13 @@ export class BitcoinWallet {
     return exportPrivateKeyWifP2WPKH(bigintToArray(this.#privkey), true);
   }
 }
+
+export function generateRandomWif() {
+  const keyBuf = new Uint8Array(32);
+  crypto.getRandomValues(keyBuf);
+  const key = arrayToBigint(keyBuf);
+  if (key >= Secp256k1.n || key <= BigInt(1)) {
+    throw new Error(`Bad luck!`);
+  }
+  return exportPrivateKeyWifP2WPKH(keyBuf.buffer, true);
+}

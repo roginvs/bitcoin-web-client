@@ -195,9 +195,9 @@ function WalletTxSendView({
 }
 
 /**
- * @param {{wallet: BitcoinWallet}} props
+ * @param {{wallet: BitcoinWallet, onLogout: () => void}} props
  */
-export function WalletView({ wallet }) {
+export function WalletView({ wallet, onLogout }) {
   const [utxos, setUtxos] = useState(
     /** @type {null | import("./wallet.defs.js").Utxo[]} */
     (null)
@@ -302,7 +302,7 @@ export function WalletView({ wallet }) {
 
     prompt("Here your private key:", wallet.exportPrivateKey());
   };
-  const onLogout = (/** @type {MouseEvent} */ e) => {
+  const onLogoutClick = (/** @type {MouseEvent} */ e) => {
     e.preventDefault();
     if (!confirm("Did you save you private key?")) {
       return;
@@ -310,9 +310,7 @@ export function WalletView({ wallet }) {
     if (!confirm("There will be no way to recover it. Proceed?")) {
       return;
     }
-    // TODO
-
-    document.location.reload();
+    onLogout();
   };
 
   return html`<div class="view flex_column_center">
@@ -423,7 +421,7 @@ export function WalletView({ wallet }) {
       style="margin-top: 15px; color: grey; width: 100%"
     >
       <a href="" onClick=${onExport}>Export key</a>
-      <a href="" onClick=${onLogout}>Logout</a>
+      <a href="" onClick=${onLogoutClick}>Logout</a>
     </div>
   </div>`;
 }
