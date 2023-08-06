@@ -21,6 +21,7 @@ import {
 import { bufToHex, parseHexToBuf } from "./bitcoin/utils/arraybuffer-hex.mjs";
 import { bitcoin_address_P2WPKH_from_public_key } from "./bitcoin/utils/bech32/address.mjs";
 import { joinBuffers } from "./bitcoin/utils/joinBuffers.mjs";
+import { exportPrivateKeyWifP2WPKH } from "./bitcoin/utils/wif.mjs";
 
 const DUST_LIMIT = 1000;
 /**
@@ -294,5 +295,9 @@ export class BitcoinWallet {
       throw new Error(`Something wrong with address`);
     }
     return address;
+  }
+
+  exportPrivateKey() {
+    return exportPrivateKeyWifP2WPKH(bigintToArray(this.#privkey), true);
   }
 }

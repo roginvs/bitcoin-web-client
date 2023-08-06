@@ -297,6 +297,24 @@ export function WalletView({ wallet }) {
       : "";
   };
 
+  const onExport = (/** @type {MouseEvent} */ e) => {
+    e.preventDefault();
+
+    prompt("Here your private key:", wallet.exportPrivateKey());
+  };
+  const onLogout = (/** @type {MouseEvent} */ e) => {
+    e.preventDefault();
+    if (!confirm("Did you save you private key?")) {
+      return;
+    }
+    if (!confirm("There will be no way to recover it. Proceed?")) {
+      return;
+    }
+    // TODO
+
+    document.location.reload();
+  };
+
   return html`<div class="view flex_column_center">
     <div style="margin-bottom: 10px;"><b>${wallet.getAddress()}</b></div>
     <div style="">
@@ -399,5 +417,13 @@ export function WalletView({ wallet }) {
               />`}
         `
       : ""}
+
+    <div
+      class="tx_confirm_row"
+      style="margin-top: 15px; color: grey; width: 100%"
+    >
+      <a href="" onClick=${onExport}>Export key</a>
+      <a href="" onClick=${onLogout}>Logout</a>
+    </div>
   </div>`;
 }
