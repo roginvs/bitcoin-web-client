@@ -45,10 +45,17 @@ const SAT_IN_BTC = 100000000;
  *   wallet: BitcoinWallet,
  *   txRaw: import("./bitcoin/protocol/messages.types.js").TransactionPayload,
  *   spendingSum: number,
- *   onClose: () => void
+ *   onClose: () => void,
+ *   feeEstimates: FeeEstimates | null
  * }} props
  */
-function WalletTxSendView({ wallet, txRaw, spendingSum, onClose }) {
+function WalletTxSendView({
+  wallet,
+  txRaw,
+  spendingSum,
+  onClose,
+  feeEstimates,
+}) {
   const tx = readTx(txRaw)[0];
 
   console.info(tx);
@@ -101,6 +108,13 @@ function WalletTxSendView({ wallet, txRaw, spendingSum, onClose }) {
     onClose();
   };
 
+  const feeRate = fee / txSize.vbytes;
+  const feeEstimate = feeEstimates
+    ? Object.keys(feeEstimates)
+        .sort((a, b) => +a - +b)
+        .find((blockN) => feeEstimates[blockN] < feeRate) || ">1008"
+    : "";
+
   return html` <div class="send_view">
     <div
       class="tx_confirm_row"
@@ -151,7 +165,11 @@ function WalletTxSendView({ wallet, txRaw, spendingSum, onClose }) {
     </div>
     <div class="tx_confirm_row">
       <span>Fee rate:</span>
-      <b>${(fee / txSize.vbytes).toFixed(2)} sat/vbytes</b>
+      <b>${feeRate.toFixed(2)} sat/vbytes</b>
+    </div>
+    <div class="tx_confirm_row">
+      <span>Estimated confirmation:</span>
+      <b>${feeEstimate} blocks</b>
     </div>
 
     ${status === null
@@ -253,14 +271,14 @@ export function WalletView({ wallet }) {
     setReadyTxWithSum(tx);
   };
 
-  // const [feeEstimates, setFeeEstimates] = useState(
-  //   /** @type {FeeEstimates | null} */ null
-  // );
-  // useEffect(() => {
-  //   fetch("https://blockstream.info/api/fee-estimates")
-  //     .then((res) => res.json())
-  //     .then((estimates) => setFeeEstimates(estimates));
-  // }, []);
+  const [feeEstimates, setFeeEstimates] = useState(
+    /** @type {FeeEstimates | null} */ null
+  );
+  useEffect(() => {
+    fetch("https://blockstream.info/api/fee-estimates")
+      .then((res) => res.json())
+      .then((estimates) => setFeeEstimates(estimates));
+  }, []);
 
   const [btcPrice, setBtcPrice] = useState(/** @type {number | null} */ null);
   useEffect(() => {
@@ -377,6 +395,7 @@ export function WalletView({ wallet }) {
                   setUtxos(null);
                   loadUtxos();
                 }}
+                feeEstimates=${feeEstimates}
               />`}
         `
       : ""}
