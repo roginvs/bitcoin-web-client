@@ -16,11 +16,18 @@ function incFailedTests() {
  * @param {string} [msg]
  */
 export function eq(a, b, msg) {
-  if (a !== b) {
+  if (a === b) {
+    console.log(`ok ${msg || ""}`);
+  } else if (
+    typeof a === "object" &&
+    typeof b === "object" &&
+    JSON.stringify(a) === JSON.stringify(b) &&
+    JSON.stringify(a) !== "{}"
+  ) {
+    console.log(`ok (objects) ${msg || ""}`);
+  } else {
     console.log(`%cFAIL ${msg || ""}: ${a} !== ${b}`, "color: red;");
     incFailedTests();
-  } else {
-    console.log(`ok ${msg || ""}`);
   }
 }
 

@@ -1,4 +1,6 @@
+import { getTxSize } from "./bitcoin/financial/txsize.mjs";
 import { readTx } from "./bitcoin/protocol/messages.parse.mjs";
+import { bufToHex } from "./bitcoin/utils/arraybuffer-hex.mjs";
 import { pkScriptToAddress } from "./bitcoin/utils/pkscript_to_address.mjs";
 import { html } from "./htm.mjs";
 import { Spinner } from "./spinner.mjs";
@@ -37,18 +39,49 @@ function btcStrToSat(str) {
  * @param {{
  *   wallet: BitcoinWallet,
  *   txRaw: import("./bitcoin/protocol/messages.types.js").TransactionPayload,
- *   utxos: import("./wallet.defs.js").Utxo[]
+ *   spendingSum: number,
+ *   onClose: () => void
  * }} props
  */
-function WalletTxSendView({ wallet, txRaw }) {
-  // todo
+function WalletTxSendView({ wallet, txRaw, spendingSum, onClose }) {
   const tx = readTx(txRaw)[0];
+
+  console.info(tx);
+
   const myAddress = wallet.getAddress();
+
+  const outsideValue = tx.txOut
+    .filter((txout) => pkScriptToAddress(txout.script) !== myAddress)
+    .reduce((acc, cur) => acc + Number(cur.value), 0);
+  const changeValue = tx.txOut
+    .filter((txout) => pkScriptToAddress(txout.script) === myAddress)
+    .reduce((acc, cur) => acc + Number(cur.value), 0);
+
+  const fee = spendingSum - changeValue - outsideValue;
+
+  const txSize = getTxSize(txRaw);
+
+  const [status, setStatus] = useState(
+    /** @type {null | "busy" | "ok" | "failed"} */ (null)
+  );
+
+  const onBroadcast = () => {
+    setStatus("busy");
+    wallet
+      .sendTx(txRaw)
+      .then(() => {
+        setStatus("ok");
+      })
+      .catch((e) => {
+        console.warn(e);
+        setStatus("failed");
+      });
+  };
 
   return html` <div class="send_view">
     <div
       class="tx_confirm_row"
-      style="justify-content: center; margin-bottom: 10px;"
+      style="justify-content: center; margin-bottom: 5px;  margin-top: 20px;"
     >
       Receiving endpoints:
     </div>
@@ -57,30 +90,66 @@ function WalletTxSendView({ wallet, txRaw }) {
       const isMyAddress = dstAddr === myAddress;
       return html`
         <div class="tx_confirm_row">
-          <span>${dstAddr}</span>
           ${isMyAddress
-            ? html`[charge] ${txout.value}`
-            : html`<b>${txout.value}</b>`}
+            ? html` <span style="color: #AAAAAA">${dstAddr} (change)</span>
+                <span>${satToBtcStr(Number(txout.value))}</span>`
+            : html`<span>${dstAddr}</span
+                ><b>${satToBtcStr(Number(txout.value))}</b>`}
         </div>
       `;
     })}
-    ${
-      /*
+
+    <div
+      class="tx_confirm_row"
+      style="justify-content: center; margin-bottom: 5px; margin-top: 20px;"
+    >
+      Information:
+    </div>
     <div class="tx_confirm_row">
-      <span>Value in BTC:</span>
-      <b>${valueStr}</b>
+      <span>Transaction value:</span>
+      <b>${satToBtcStr(spendingSum)} btc</b>
+    </div>
+    <div class="tx_confirm_row">
+      <span>Transferred:</span>
+      <b>${satToBtcStr(outsideValue)} btc</b>
+    </div>
+    <div class="tx_confirm_row">
+      <span>Change:</span>
+      <b>${satToBtcStr(changeValue)} btc</b>
+    </div>
+    <div class="tx_confirm_row">
+      <span>Fee:</span>
+      <b>${satToBtcStr(fee)} btc</b>
     </div>
 
     <div class="tx_confirm_row">
-      <span>Fee:</span>
-      <b>${satToBtcStr(fee)}</b>
+      <span>Transaction size:</span>
+      <b>${txSize.vbytes} vbytes</b>
     </div>
     <div class="tx_confirm_row">
-      <span>Remaining:</span>
-      <b>${satToBtcStr(balance - value - fee)}</b>
+      <span>Fee rate:</span>
+      <b>${(fee / txSize.vbytes).toFixed(2)} sat/vbytes</b>
     </div>
-  */ ""
-    }
+
+    ${status === null
+      ? html`
+          <div
+            class="tx_confirm_row"
+            style="justify-content: center; margin-bottom: 5px; margin-top: 20px; gap: 10px;"
+          >
+            <button style="width: 100px" onClick=${onBroadcast}>
+              Broadcast
+            </button>
+            <button style="width: 100px" onClick=${onClose}>Cancel</button>
+          </div>
+        `
+      : status === "busy"
+      ? html`<${Spinner} />`
+      : status === "ok"
+      ? html`<button onClick=${onClose}>Ok!</button> `
+      : status === "failed"
+      ? html`<button onClick=${onClose}>FAILED TO BROADCAST!</button> `
+      : ""}
   </div>`;
 }
 
@@ -140,8 +209,8 @@ export function WalletView({ wallet }) {
     value > 0 &&
     fee + value <= balance;
 
-  const [readyTx, setReadyTx] = useState(
-    /** @type {import("./bitcoin/protocol/messages.types.js").TransactionPayload| null} */ (
+  const [readyTxWithSum, setReadyTxWithSum] = useState(
+    /** @type {readonly [import("./bitcoin/protocol/messages.types.js").TransactionPayload, number]| null} */ (
       null
     )
   );
@@ -150,7 +219,7 @@ export function WalletView({ wallet }) {
       return;
     }
     const tx = wallet.createTx(utxos, dstAddr, value, fee);
-    setReadyTx(tx);
+    setReadyTxWithSum(tx);
   };
 
   return html`<div class="view flex_column_center">
@@ -182,11 +251,12 @@ export function WalletView({ wallet }) {
             )}
           </div>
 
-          ${!(readyTx && balance && fee && value)
+          ${!(readyTxWithSum && balance && fee && value)
             ? html`<div class="send_view">
                 <input
                   type="text"
                   placeholder="Enter address"
+                  title="Destination address"
                   value=${dstAddr}
                   onInput=${(/** @type {any} */ e) => {
                     setDstAddr(e.target.value);
@@ -197,6 +267,7 @@ export function WalletView({ wallet }) {
                     style="width: 100%"
                     type="text"
                     placeholder="Enter btc amount"
+                    title="Amount"
                     value=${valueStr}
                     onInput=${(/** @type {any} */ e) => {
                       setValueStr(e.target.value);
@@ -209,6 +280,7 @@ export function WalletView({ wallet }) {
                     style="width: 100%"
                     type="text"
                     placeholder="Fee"
+                    title="Fee"
                     value=${feeStr}
                     onInput=${(/** @type {any} */ e) => {
                       setFeeStr(e.target.value);
@@ -226,13 +298,14 @@ export function WalletView({ wallet }) {
                   disabled=${!isSendAvailable}
                   onClick=${onSendClick}
                 >
-                  Send
+                  Create transaction
                 </button>
               </div>`
             : html`<${WalletTxSendView}
                 wallet=${wallet}
-                txRaw=${readyTx}
-                utxos=${utxos}
+                txRaw=${readyTxWithSum[0]}
+                spendingSum=${readyTxWithSum[1]}
+                onClose=${() => setReadyTxWithSum(null)}
               />`}
         `
       : ""}

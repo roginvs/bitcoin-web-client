@@ -119,10 +119,10 @@ export class BitcoinWallet {
       .filter((utxo) => !isDust(utxo))
       .sort((a, b) => a.value - b.value);
 
-    const totalValue = possibleUtxos
+    const totalPossibleValue = possibleUtxos
       .filter((utxo) => !isDust(utxo))
       .reduce((acc, cur) => acc + cur.value, 0);
-    if (totalValue < amount + fee) {
+    if (totalPossibleValue < amount + fee) {
       throw new Error(`Total value is lower than amount and fee!`);
     }
     /** @type {typeof possibleUtxos} */
@@ -143,7 +143,8 @@ export class BitcoinWallet {
 
     const myPublicKey = this.#getCompressedPubkey();
 
-    const changeValue = totalValue - amount - fee;
+    const changeValue =
+      spendingUtxos.reduce((acc, cur) => acc + cur.value, 0) - amount - fee;
 
     /** @type {import("./bitcoin/protocol/types.js").BitcoinTransaction} */
     const spendingTx = {
@@ -257,19 +258,33 @@ export class BitcoinWallet {
 
     const packedTx = packTx(spendingTx);
 
-    console.info(bufToHex(packedTx));
+    // console.info(bufToHex(packedTx));
+    // console.info(readTx(packedTx)[0]);
 
-    console.info(readTx(packedTx)[0]);
+    const spendingUtxosSum = spendingUtxos.reduce(
+      (acc, cur) => acc + Number(cur.value),
+      0
+    );
 
-    return packedTx;
+    return /** @type {const} */ ([packedTx, spendingUtxosSum]);
   }
 
   /**
    *
-   * @param {Uint8Array} txData
+   * @param {import("./bitcoin/protocol/messages.types.js").TransactionPayload} txData
    */
   async sendTx(txData) {
-    // TODO
+    const url = `https://blockstream.info/api/tx`;
+
+    const txHex = bufToHex(txData);
+    const result = await fetch(url, {
+      method: "POST",
+      body: txHex,
+    }).then((res) => res.text());
+    if (!result.match(/^[0-9a-z]{64}$/)) {
+      throw new Error(result);
+    }
+    console.info(result);
   }
 
   getAddress() {
