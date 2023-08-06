@@ -220,9 +220,11 @@ export function WalletView({ wallet }) {
     setValueStr(satToBtcStr(value));
   };
 
-  const [dstAddr, setDstAddr] = useState(
-    "bc1q3sy4uhguqr43avkc2a26a8xrukp4z9l4jyzt4l"
-  );
+  useEffect(() => {
+    onMaxClick();
+  }, [balance]);
+
+  const [dstAddr, setDstAddr] = useState(wallet.getAddress());
 
   const isSendAvailable =
     dstAddr &&
@@ -277,6 +279,7 @@ export function WalletView({ wallet }) {
 
           ${!(readyTxWithSum && balance && fee && value)
             ? html`<div class="send_view">
+                <label>Address:</label>
                 <input
                   type="text"
                   placeholder="Enter address"
@@ -285,8 +288,10 @@ export function WalletView({ wallet }) {
                   onInput=${(/** @type {any} */ e) => {
                     setDstAddr(e.target.value);
                   }}
+                  style="margin-bottom: 5px"
                 />
-                <div class="flex_row">
+                <label>Amount:</label>
+                <div class="flex_row" style="margin-bottom: 5px">
                   <input
                     style="width: 100%"
                     type="text"
@@ -299,7 +304,8 @@ export function WalletView({ wallet }) {
                   />
                   <button class="btn" onClick=${onMaxClick}>max</button>
                 </div>
-                <div class="flex_row">
+                <label>Fee:</label>
+                <div class="flex_row" style="margin-bottom: 10px">
                   <input
                     style="width: 100%"
                     type="text"
@@ -310,6 +316,9 @@ export function WalletView({ wallet }) {
                       setFeeStr(e.target.value);
                     }}
                   />
+                  <button class="btn" onClick=${() => setFeeStr("0.000025")}>
+                    2500sat
+                  </button>
                   <button class="btn" onClick=${() => setFeeStr("0.00005")}>
                     5000sat
                   </button>
