@@ -1,8 +1,10 @@
 import { modulo_power_point } from "./bitcoin/my-elliptic-curves/curves.mjs";
 import { Secp256k1 } from "./bitcoin/my-elliptic-curves/curves.named.mjs";
+import { signature } from "./bitcoin/my-elliptic-curves/ecdsa.mjs";
 import { ripemd160 } from "./bitcoin/my-hashes/ripemd160.mjs";
 import { sha256 } from "./bitcoin/my-hashes/sha256.mjs";
 import { packTx } from "./bitcoin/protocol/messages.create.mjs";
+import { packAsn1PairOfIntegers } from "./bitcoin/script/asn1.mjs";
 import {
   getOpChecksigSignatureValueWitness,
   p2wpkhProgramForOpChecksig,
@@ -12,7 +14,7 @@ import {
   arrayToBigint,
   bigintToArray,
 } from "./bitcoin/utils/arraybuffer-bigint.mjs";
-import { parseHexToBuf } from "./bitcoin/utils/arraybuffer-hex.mjs";
+import { bufToHex, parseHexToBuf } from "./bitcoin/utils/arraybuffer-hex.mjs";
 import { bitcoin_address_P2WPKH_from_public_key } from "./bitcoin/utils/bech32/address.mjs";
 
 const DUST_LIMIT = 1000;
@@ -200,6 +202,28 @@ export class BitcoinWallet {
         BigInt(spendingUtxos[i].value),
         0x01
       );
+
+      const kBuf = new Uint8Array(32);
+      crypto.getRandomValues(kBuf);
+
+      const k = arrayToBigint(kBuf);
+      if (k >= Secp256k1.n || k <= BigInt(1)) {
+        throw new Error(`Not this time LOL`);
+      }
+      const sig = signature({
+        curve: Secp256k1,
+        k,
+        msgHash: arrayToBigint(dataToSig),
+        privateKey: this.#privkey,
+      });
+
+      const s = sig.s > Secp256k1.n / BigInt(2) ? Secp256k1.n - sig.s : sig.s;
+
+      //const sigDer = packAsn1PairOfIntegers(bigintToBuf(sig.r), bigintToBuf(s));
+      //if (!verify(undefined, dataToSig, myPublicKeyObject, sigDer)) {
+      //  throw new Error("Something wrong with signatures");
+      //}
+      //
       // TODO: create signature
       //const signatureWithHashType = Buffer.concat([
       //  signatureDer,
