@@ -36,6 +36,11 @@ function btcStrToSat(str) {
 }
 
 /**
+ * @typedef {Record<string, number>} FeeEstimates
+ */
+
+const SAT_IN_BTC = 100000000;
+/**
  * @param {{
  *   wallet: BitcoinWallet,
  *   txRaw: import("./bitcoin/protocol/messages.types.js").TransactionPayload,
@@ -248,12 +253,41 @@ export function WalletView({ wallet }) {
     setReadyTxWithSum(tx);
   };
 
+  // const [feeEstimates, setFeeEstimates] = useState(
+  //   /** @type {FeeEstimates | null} */ null
+  // );
+  // useEffect(() => {
+  //   fetch("https://blockstream.info/api/fee-estimates")
+  //     .then((res) => res.json())
+  //     .then((estimates) => setFeeEstimates(estimates));
+  // }, []);
+
+  const [btcPrice, setBtcPrice] = useState(/** @type {number | null} */ null);
+  useEffect(() => {
+    fetch("https://api.blockchain.com/v3/exchange/tickers/BTC-EUR", {
+      headers: {
+        accept: "application/json",
+      },
+    })
+      .then((res) => res.json())
+      .then((prices) => setBtcPrice(prices.price_24h));
+  }, []);
+
+  const euroPrice = (/** @type {number | null} */ sat) => {
+    return sat && btcPrice
+      ? ((sat / SAT_IN_BTC) * btcPrice).toFixed(2) + " EUR"
+      : "";
+  };
+
   return html`<div class="view flex_column_center">
     <div style="margin-bottom: 10px;"><b>${wallet.getAddress()}</b></div>
-    <div style="margin-bottom: 10px;">
+    <div style="">
       ${balance !== null
         ? html`${satToBtcStr(balance)} btc = ${balance} sat`
         : html`<${Spinner} />`}
+    </div>
+    <div style="margin-bottom: 10px;">
+      ${balance !== null ? euroPrice(balance) : ""}
     </div>
     ${utxos
       ? html`
@@ -290,7 +324,7 @@ export function WalletView({ wallet }) {
                   }}
                   style="margin-bottom: 5px"
                 />
-                <label>Amount:</label>
+                <label>Amount (${euroPrice(value)}):</label>
                 <div class="flex_row" style="margin-bottom: 5px">
                   <input
                     style="width: 100%"
@@ -304,7 +338,7 @@ export function WalletView({ wallet }) {
                   />
                   <button class="btn" onClick=${onMaxClick}>max</button>
                 </div>
-                <label>Fee:</label>
+                <label>Fee (${euroPrice(fee)}): </label>
                 <div class="flex_row" style="margin-bottom: 10px">
                   <input
                     style="width: 100%"
