@@ -89,7 +89,7 @@ export function WalletView({ wallet }) {
     fee + value <= balance;
 
   const [readyTx, setReadyTx] = useState(
-    /** @type {import("./bitcoin/protocol/types.js").BitcoinTransaction| null} */ (
+    /** @type {import("./bitcoin/protocol/messages.types.js").TransactionPayload| null} */ (
       null
     )
   );

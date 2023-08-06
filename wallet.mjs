@@ -1,6 +1,9 @@
 import { modulo_power_point } from "./bitcoin/my-elliptic-curves/curves.mjs";
 import { Secp256k1 } from "./bitcoin/my-elliptic-curves/curves.named.mjs";
-import { signature } from "./bitcoin/my-elliptic-curves/ecdsa.mjs";
+import {
+  check_signature,
+  signature,
+} from "./bitcoin/my-elliptic-curves/ecdsa.mjs";
 import { ripemd160 } from "./bitcoin/my-hashes/ripemd160.mjs";
 import { sha256 } from "./bitcoin/my-hashes/sha256.mjs";
 import { packTx } from "./bitcoin/protocol/messages.create.mjs";
@@ -16,6 +19,7 @@ import {
 } from "./bitcoin/utils/arraybuffer-bigint.mjs";
 import { bufToHex, parseHexToBuf } from "./bitcoin/utils/arraybuffer-hex.mjs";
 import { bitcoin_address_P2WPKH_from_public_key } from "./bitcoin/utils/bech32/address.mjs";
+import { joinBuffers } from "./bitcoin/utils/joinBuffers.mjs";
 
 const DUST_LIMIT = 1000;
 /**
@@ -192,8 +196,6 @@ export class BitcoinWallet {
         ),
     };
 
-    console.info(spendingTx);
-
     for (let i = 0; i < spendingUtxos.length; i++) {
       const dataToSig = getOpChecksigSignatureValueWitness(
         spendingTx,
@@ -217,21 +219,42 @@ export class BitcoinWallet {
         privateKey: this.#privkey,
       });
 
+      if (
+        !check_signature({
+          curve: Secp256k1,
+          msgHash: arrayToBigint(dataToSig),
+          publicKey: this.#getPublicPoint(),
+          r: sig.r,
+          s: sig.s,
+        })
+      ) {
+        throw new Error("Something wrong with signatures");
+      }
+
       const s = sig.s > Secp256k1.n / BigInt(2) ? Secp256k1.n - sig.s : sig.s;
 
-      //const sigDer = packAsn1PairOfIntegers(bigintToBuf(sig.r), bigintToBuf(s));
-      //if (!verify(undefined, dataToSig, myPublicKeyObject, sigDer)) {
-      //  throw new Error("Something wrong with signatures");
-      //}
-      //
-      // TODO: create signature
-      //const signatureWithHashType = Buffer.concat([
-      //  signatureDer,
-      //  Buffer.from([0x01]),
-      //]);
-      // spendingTx.txIn[i].witness![0] = signatureWithHashType;
+      const sigDer = packAsn1PairOfIntegers(
+        bigintToArray(sig.r),
+        bigintToArray(s)
+      );
+
+      const signatureWithHashType = joinBuffers(sigDer, new Uint8Array([0x01]));
+
+      const witness = spendingTx.txIn[i].witness;
+      if (!witness) {
+        throw new Error(`Internal error`);
+      }
+      witness[0] =
+        /** @type {import("./bitcoin/protocol/messages.types.js").WitnessStackItem}*/ (
+          signatureWithHashType.buffer
+        );
     }
-    return spendingTx;
+
+    const packedTx = packTx(spendingTx);
+
+    console.info(bufToHex(packedTx));
+
+    return packedTx;
   }
 
   /**
