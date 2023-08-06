@@ -78,6 +78,24 @@ function WalletTxSendView({ wallet, txRaw, spendingSum, onClose }) {
       });
   };
 
+  const onOkClick = () => {
+    {
+      const link = document.createElement("a");
+      const txIdArray = [...new Uint8Array(tx.txid)].reverse();
+
+      link.href = `https://www.blockchain.com/ru/explorer/transactions/btc/${bufToHex(
+        new Uint8Array(txIdArray).buffer
+      )}`;
+      link.target = "_blank";
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        document.body.removeChild(link);
+      }, 1000);
+    }
+    onClose();
+  };
+
   return html` <div class="send_view">
     <div
       class="tx_confirm_row"
@@ -146,7 +164,7 @@ function WalletTxSendView({ wallet, txRaw, spendingSum, onClose }) {
       : status === "busy"
       ? html`<${Spinner} />`
       : status === "ok"
-      ? html`<button onClick=${onClose}>Ok!</button> `
+      ? html`<button onClick=${onOkClick}>Ok!</button> `
       : status === "failed"
       ? html`<button onClick=${onClose}>FAILED TO BROADCAST!</button> `
       : ""}
