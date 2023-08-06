@@ -11,3 +11,9 @@ LOTS of crypto code is copied from this repo https://github.com/roginvs/bitcoin-
 ## Where is typescript?
 
 This project is using plain javascript modules with type annonation. You can run typecheck via `npx --package typescript tsc`
+
+## TODO
+
+- Add multiple keys
+- Show export as textarea instead of prompt
+- Reorganize crypto code
