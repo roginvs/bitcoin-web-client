@@ -7,6 +7,7 @@ import {
 import { ripemd160 } from "./bitcoin/my-hashes/ripemd160.mjs";
 import { sha256 } from "./bitcoin/my-hashes/sha256.mjs";
 import { packTx } from "./bitcoin/protocol/messages.create.mjs";
+import { readTx } from "./bitcoin/protocol/messages.parse.mjs";
 import { packAsn1PairOfIntegers } from "./bitcoin/script/asn1.mjs";
 import {
   getOpChecksigSignatureValueWitness,
@@ -68,7 +69,9 @@ export class BitcoinWallet {
    */
   async getUtxo() {
     const url = `https://blockstream.info/api/address/${this.getAddress()}/utxo`;
-    //return await fetch(url).then((res) => res.json());
+    return await fetch(url).then((res) => res.json());
+
+    // https://blockchain.info/unspent?active=$address
 
     await new Promise((r) => setTimeout(r, 100));
     return [
@@ -148,7 +151,7 @@ export class BitcoinWallet {
       txIn: spendingUtxos.map((utxo) => ({
         outpointHash:
           /** @type {import("./bitcoin/protocol/messages.types.js").TransactionHash} */ (
-            parseHexToBuf(utxo.txid)
+            parseHexToBuf(utxo.txid, true)
           ),
         outpointIndex: utxo.vout,
         sequence: 0xfffffffe,
@@ -205,6 +208,8 @@ export class BitcoinWallet {
         0x01
       );
 
+      const signingInt = arrayToBigint(sha256(dataToSig));
+
       const kBuf = new Uint8Array(32);
       crypto.getRandomValues(kBuf);
 
@@ -215,14 +220,14 @@ export class BitcoinWallet {
       const sig = signature({
         curve: Secp256k1,
         k,
-        msgHash: arrayToBigint(dataToSig),
+        msgHash: signingInt,
         privateKey: this.#privkey,
       });
 
       if (
         !check_signature({
           curve: Secp256k1,
-          msgHash: arrayToBigint(dataToSig),
+          msgHash: signingInt,
           publicKey: this.#getPublicPoint(),
           r: sig.r,
           s: sig.s,
@@ -253,6 +258,8 @@ export class BitcoinWallet {
     const packedTx = packTx(spendingTx);
 
     console.info(bufToHex(packedTx));
+
+    console.info(readTx(packedTx)[0]);
 
     return packedTx;
   }

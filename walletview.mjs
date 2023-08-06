@@ -52,7 +52,7 @@ export function WalletView({ wallet }) {
     });
   }, [wallet]);
 
-  const [valueStr, setValueStr] = useState("");
+  const [valueStr, setValueStr] = useState("0.0002");
   const [feeStr, setFeeStr] = useState("0.00005");
 
   const fee = btcStrToSat(feeStr);
