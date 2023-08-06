@@ -1,8 +1,8 @@
 export type UtxoStatus = {
   confirmed: boolean;
-  block_height: number;
-  block_hash: string;
-  block_time: number;
+  block_height?: number;
+  block_hash?: string;
+  block_time?: number;
 };
 export type Utxo = {
   txid: string;
