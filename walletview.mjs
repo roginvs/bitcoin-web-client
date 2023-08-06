@@ -314,10 +314,13 @@ export function WalletView({ wallet, onLogout }) {
   };
 
   return html`<div class="view flex_column_center">
-    <div style="margin-bottom: 10px;"><b>${wallet.getAddress()}</b></div>
+    <div>Your address:</div>
+    <div style="margin-bottom: 10px;">
+      <b>${wallet.getAddress()}</b>
+    </div>
     <div style="">
       ${balance !== null
-        ? html`${satToBtcStr(balance)} btc = ${balance} sat`
+        ? html`<b>${satToBtcStr(balance)} btc = ${balance} sat</b>`
         : html`<${Spinner} />`}
     </div>
     <div style="margin-bottom: 10px;">
@@ -347,7 +350,7 @@ export function WalletView({ wallet, onLogout }) {
 
           ${!(readyTxWithSum && balance && fee && value)
             ? html`<div class="send_view">
-                <label>Address:</label>
+                <label>Send to address:</label>
                 <input
                   type="text"
                   placeholder="Enter address"
