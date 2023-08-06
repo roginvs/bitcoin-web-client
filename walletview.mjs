@@ -1,3 +1,4 @@
+import { readTx } from "./bitcoin/protocol/messages.parse.mjs";
 import { pkScriptToAddress } from "./bitcoin/utils/pkscript_to_address.mjs";
 import { html } from "./htm.mjs";
 import { Spinner } from "./spinner.mjs";
@@ -35,11 +36,52 @@ function btcStrToSat(str) {
 /**
  * @param {{
  *   wallet: BitcoinWallet,
- *   txRaw: import("./bitcoin/protocol/messages.types.js").TransactionPayload
+ *   txRaw: import("./bitcoin/protocol/messages.types.js").TransactionPayload,
+ *   utxos: import("./wallet.defs.js").Utxo[]
  * }} props
  */
-function WalletTxSendView({ wallet }) {
+function WalletTxSendView({ wallet, txRaw }) {
   // todo
+  const tx = readTx(txRaw)[0];
+  const myAddress = wallet.getAddress();
+
+  return html` <div class="send_view">
+    <div
+      class="tx_confirm_row"
+      style="justify-content: center; margin-bottom: 10px;"
+    >
+      Receiving endpoints:
+    </div>
+    ${tx.txOut.map((txout) => {
+      const dstAddr = pkScriptToAddress(txout.script);
+      const isMyAddress = dstAddr === myAddress;
+      return html`
+        <div class="tx_confirm_row">
+          <span>${dstAddr}</span>
+          ${isMyAddress
+            ? html`[charge] ${txout.value}`
+            : html`<b>${txout.value}</b>`}
+        </div>
+      `;
+    })}
+    ${
+      /*
+    <div class="tx_confirm_row">
+      <span>Value in BTC:</span>
+      <b>${valueStr}</b>
+    </div>
+
+    <div class="tx_confirm_row">
+      <span>Fee:</span>
+      <b>${satToBtcStr(fee)}</b>
+    </div>
+    <div class="tx_confirm_row">
+      <span>Remaining:</span>
+      <b>${satToBtcStr(balance - value - fee)}</b>
+    </div>
+  */ ""
+    }
+  </div>`;
 }
 
 /**
@@ -62,7 +104,7 @@ export function WalletView({ wallet }) {
     });
   }, [wallet]);
 
-  const [valueStr, setValueStr] = useState("0.0002");
+  const [valueStr, setValueStr] = useState("0.0003");
   const [feeStr, setFeeStr] = useState("0.00005");
 
   const fee = btcStrToSat(feeStr);
@@ -187,27 +229,11 @@ export function WalletView({ wallet }) {
                   Send
                 </button>
               </div>`
-            : html`
-                <div class="send_view">
-                  <div class="tx_confirm_row">
-                    <span>Destination:</span>
-                    <b>${dstAddr}</b>
-                  </div>
-                  <div class="tx_confirm_row">
-                    <span>Value in BTC:</span>
-                    <b>${valueStr}</b>
-                  </div>
-
-                  <div class="tx_confirm_row">
-                    <span>Fee:</span>
-                    <b>${satToBtcStr(fee)}</b>
-                  </div>
-                  <div class="tx_confirm_row">
-                    <span>Remaining:</span>
-                    <b>${satToBtcStr(balance - value - fee)}</b>
-                  </div>
-                </div>
-              `}
+            : html`<${WalletTxSendView}
+                wallet=${wallet}
+                txRaw=${readyTx}
+                utxos=${utxos}
+              />`}
         `
       : ""}
   </div>`;
