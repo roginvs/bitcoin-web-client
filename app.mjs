@@ -6,13 +6,14 @@ import { useState } from "./thirdparty/hooks.mjs";
 import { BitcoinWallet } from "./wallet.mjs";
 import { WalletView } from "./walletview.mjs";
 
+const LOCAL_STORAGE_PRIVATE_KEY_KEY = "bitcoin_wallet_private_key";
 /**
  *
  * @param {{}} props
  */
 export function App(props) {
   const [wallet, setWallet] = useState(() => {
-    const privateKeyHex = localStorage.getItem("private_key");
+    const privateKeyHex = localStorage.getItem(LOCAL_STORAGE_PRIVATE_KEY_KEY);
     if (!privateKeyHex) {
       return null;
     }
@@ -21,7 +22,7 @@ export function App(props) {
   });
 
   const onLogout = () => {
-    localStorage.removeItem("private_key");
+    localStorage.removeItem(LOCAL_STORAGE_PRIVATE_KEY_KEY);
     document.location.reload();
   };
 
@@ -30,7 +31,7 @@ export function App(props) {
     /** @type {boolean} */ isRemember
   ) => {
     if (isRemember) {
-      localStorage.setItem("private_key", bufToHex(key));
+      localStorage.setItem(LOCAL_STORAGE_PRIVATE_KEY_KEY, bufToHex(key));
     }
     setWallet(new BitcoinWallet(arrayToBigint(key)));
   };
