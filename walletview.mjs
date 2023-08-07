@@ -324,6 +324,10 @@ export function WalletView({ wallet, onLogout }) {
 
   const [btcPrice, setBtcPrice] = useState(/** @type {number | null} */ null);
   useEffect(() => {
+    if (!utxos) {
+      // Fetch this after we got utxos
+      return;
+    }
     fetch("https://api.blockchain.com/v3/exchange/tickers/BTC-EUR", {
       headers: {
         accept: "application/json",
@@ -331,7 +335,7 @@ export function WalletView({ wallet, onLogout }) {
     })
       .then((res) => res.json())
       .then((prices) => setBtcPrice(prices.price_24h));
-  }, []);
+  }, [utxos]);
 
   const euroPrice = (/** @type {number | null} */ sat) => {
     return sat && btcPrice
