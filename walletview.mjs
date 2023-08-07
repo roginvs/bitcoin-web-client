@@ -361,11 +361,11 @@ export function WalletView({ wallet, onLogout }) {
     <div style="margin-bottom: 10px;">
       ${wallet.getAddresses().map((addr) => html`<div><b>${addr}</b><//>`)}
     </div>
-    <div style="">
+    <h3>
       ${balance !== null
         ? html`<b>${satToBtcStr(balance)} btc = ${balance} sat</b>`
         : html`<${Spinner} />`}
-    </div>
+    <//>
     <div style="margin-bottom: 10px;">
       ${balance !== null ? euroPrice(balance) : ""}
     </div>
