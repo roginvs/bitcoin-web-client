@@ -356,6 +356,8 @@ export function WalletView({ wallet, onLogout }) {
     onLogout();
   };
 
+  const [viewUtxos, setViewUtxos] = useState(false);
+
   return html`<div class="view flex_column_center">
     <div>Your addresses:</div>
     <div style="margin-bottom: 10px;">
@@ -371,31 +373,50 @@ export function WalletView({ wallet, onLogout }) {
     </div>
     ${utxos
       ? html`
-          <div class="utxo_list">
-            ${utxos.map(
-              (utxo) =>
-                html`<div>
-                  ${isDust(utxo)
-                    ? html`<s title="dust">${utxo.value}</s>`
-                    : utxo.value}
-                  ${" "}sat
-                  ${utxo.status.block_time
-                    ? " at " +
-                      new Date(utxo.status.block_time * 1000).toLocaleString()
-                    : utxo.status.confirmations
-                    ? ` ${utxo.status.confirmations} confs`
-                    : utxo.status.confirmed
-                    ? ` confirmed`
-                    : " <not confirmed>"}${" "}
-                  <a
-                    target="_blank"
-                    href="https://www.blockchain.com/ru/explorer/transactions/btc/${utxo.txid}"
-                    >${utxo.txid.slice(0, 8)}</a
-                  >
-                </div>`
-            )}
-          </div>
-
+          ${viewUtxos
+            ? html`<div class="utxo_list">
+                ${utxos.map(
+                  (utxo) =>
+                    html`<div class="utxo_list_row">
+                      <div title=${utxo.wallet}>
+                        ${utxo.wallet.slice(0, 6)}..${utxo.wallet.slice(-4)}
+                      </div>
+                      <div>
+                        ${isDust(utxo)
+                          ? html`<s title="dust">${utxo.value}</s>`
+                          : utxo.value}
+                        ${" "}sat
+                      </div>
+                      <div>
+                        ${utxo.status.block_time
+                          ? new Date(
+                              utxo.status.block_time * 1000
+                            ).toLocaleString()
+                          : utxo.status.confirmations
+                          ? `${utxo.status.confirmations} confs`
+                          : utxo.status.confirmed
+                          ? `confirmed`
+                          : "<not confirmed>"}${" "}
+                      </div>
+                      <div>
+                        <a
+                          target="_blank"
+                          href="https://www.blockchain.com/ru/explorer/transactions/btc/${utxo.txid}"
+                          >${utxo.txid.slice(0, 8)}</a
+                        >
+                      </div>
+                    </div>`
+                )}
+              </div> `
+            : html`<a
+                onClick=${(/** @type {MouseEvent} */ e) => {
+                  e.preventDefault();
+                  setViewUtxos(true);
+                }}
+                href=""
+                style="margin-bottom: 15px; color: grey"
+                >Show coins</a
+              >`}
           ${exportView
             ? html`<${ExportView}
                 wallet=${wallet}

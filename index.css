@@ -10,12 +10,22 @@
 }
 
 .utxo_list {
+  /*
   margin-left: 20px;
   margin-right: 20px;
+  */
+  width: 100%;
   color: grey;
   margin-bottom: 30px;
 }
-
+.utxo_list_row {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+.utxo_list_row > * {
+  /* flex: 1; */
+}
 .btn {
   font-family: monospace;
 }
