@@ -77,20 +77,18 @@ export class BitcoinWallet {
    * @returns {Promise<import("./wallet.defs.js").UtxoWithKeyIndex[]>}
    */
   async getUtxo() {
-    const result =
-      /** @type {Promise<import("./wallet.defs.js").UtxoWithKeyIndex[]} */ [];
-    for (let keyIndex = 0; keyIndex < this.#privkeys.length; keyIndex++) {
-      const url = `https://blockstream.info/api/address/${this.getAddress(
-        keyIndex
-      )}/utxo`;
-
-      /** @type {import("./wallet.defs.js").Utxo[]}  */
-      const utxos = await fetch(url).then((res) => res.json());
-      for (const utxo of utxos) {
-        result.push({ ...utxo, keyIndex });
-      }
-    }
-    return result;
+    return (
+      await Promise.all(
+        this.#getPrivKeysIndexes().map(async (keyIndex) => {
+          const url = `https://blockstream.info/api/address/${this.getAddress(
+            keyIndex
+          )}/utxo`;
+          /** @type {import("./wallet.defs.js").Utxo[]}  */
+          const utxos = await fetch(url).then((res) => res.json());
+          return utxos.map((utxo) => ({ ...utxo, keyIndex }));
+        })
+      )
+    ).flat(1);
 
     // Possible to use this endpoint
     // https://blockchain.info/unspent?active=$address
@@ -132,7 +130,7 @@ export class BitcoinWallet {
 
     const changePkScript = addressToPkScript(this.getAddress(0));
 
-    const myPublicKeys = this.#privkeys.map((_, index) =>
+    const myPublicKeys = this.#getPrivKeysIndexes().map((index) =>
       this.#getCompressedPubkey(index)
     );
 
@@ -299,7 +297,7 @@ export class BitcoinWallet {
   }
 
   getAddresses() {
-    return this.#privkeys.map((_, index) => this.getAddress(index));
+    return this.#getPrivKeysIndexes().map((index) => this.getAddress(index));
   }
 
   /**
@@ -313,7 +311,13 @@ export class BitcoinWallet {
   }
 
   exportPrivateKeys() {
-    return this.#privkeys.map((_, index) => this.exportPrivateKey(index));
+    return this.#getPrivKeysIndexes().map((index) =>
+      this.exportPrivateKey(index)
+    );
+  }
+
+  #getPrivKeysIndexes() {
+    return this.#privkeys.map((_, index) => index);
   }
 }
 
