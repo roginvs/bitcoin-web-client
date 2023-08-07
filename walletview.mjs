@@ -313,10 +313,14 @@ export function WalletView({ wallet, onLogout }) {
     /** @type {FeeEstimates | null} */ null
   );
   useEffect(() => {
+    if (!utxos) {
+      // Fetch this after we got utxos
+      return;
+    }
     fetch("https://blockstream.info/api/fee-estimates")
       .then((res) => res.json())
       .then((estimates) => setFeeEstimates(estimates));
-  }, []);
+  }, [utxos]);
 
   const [btcPrice, setBtcPrice] = useState(/** @type {number | null} */ null);
   useEffect(() => {
