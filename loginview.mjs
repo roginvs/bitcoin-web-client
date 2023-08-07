@@ -18,7 +18,7 @@ export function LoginView({ onLogin }) {
     }
 
     const keys = wifs
-      .split("\n")
+      .split(/\r\n|\n|\t/)
       .map((x) => x.trim())
       .filter((x) => x)
       .filter((x) => x.startsWith("p2wpkh:"))
