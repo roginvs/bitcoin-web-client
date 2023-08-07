@@ -257,7 +257,7 @@ export class BitcoinWallet {
 
     const packedTx = packTx(spendingTx);
 
-    // console.info(bufToHex(packedTx));
+    console.info(bufToHex(packedTx));
     // console.info(readTx(packedTx)[0]);
 
     const spendingUtxosSum = spendingUtxos.reduce(
