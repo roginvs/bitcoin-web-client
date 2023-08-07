@@ -224,7 +224,9 @@ function WalletTxSendView({
       : status === "ok"
       ? html`<button onClick=${onOkClick}>Ok!</button> `
       : status === "failed"
-      ? html`<button onClick=${onClose}>FAILED TO BROADCAST!</button> `
+      ? html`<button onClick=${() => setStatus(null)}>
+          FAILED TO BROADCAST!
+        </button> `
       : ""}
   </div>`;
 }
