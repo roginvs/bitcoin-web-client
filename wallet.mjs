@@ -85,11 +85,31 @@ export class BitcoinWallet {
       /** @type {import("./wallet.defs.js").UtxoWithKeyIndex[]} */
       const result = [];
       for (const keyIndex of this.#getPrivKeysIndexes()) {
-        const url = `https://blockstream.info/api/address/${this.getAddress(
-          keyIndex
-        )}/utxo`;
-        /** @type {import("./wallet.defs.js").Utxo[]}  */
-        const utxos = await fetch(url).then((res) => res.json());
+        const address = this.getAddress(keyIndex);
+        const url1 = `https://blockstream.info/api/address/${address}/utxo`;
+        /** @type {import("./wallet.defs.js").Utxo[] | null}  */
+        let utxos = null;
+        utxos = await fetch(url1)
+          .then((res) => res.json())
+          .catch((e) => {
+            console.warn(`Failed to fetch ${url1}`);
+            console.warn(e);
+            return null;
+          });
+        if (!utxos) {
+          const url2 = `https://blockchain.info/unspent?active=${address}`;
+          /** @type {import("./wallet.defs.js").BlockchainInfoResult}  */
+          const result = await fetch(url2).then((res) => res.json());
+          utxos = result.unspent_outputs.map((utxo) => ({
+            txid: utxo.tx_hash_big_endian,
+            vout: utxo.tx_output_n,
+            status: {
+              confirmed: !!utxo.confirmations,
+              confirmations: utxo.confirmations,
+            },
+            value: utxo.value,
+          }));
+        }
         utxos.forEach((utxo) => result.push({ ...utxo, keyIndex }));
       }
       return result;
@@ -101,8 +121,9 @@ export class BitcoinWallet {
           const url = `https://blockstream.info/api/address/${this.getAddress(
             keyIndex
           )}/utxo`;
-          /** @type {import("./wallet.defs.js").Utxo[]}  */
+          /** @type {import("./wallet.defs.js").Utxo[] }  */
           const utxos = await fetch(url).then((res) => res.json());
+
           return utxos.map((utxo) => ({ ...utxo, keyIndex }));
         })
       )

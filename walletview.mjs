@@ -378,10 +378,15 @@ export function WalletView({ wallet, onLogout }) {
                   ${isDust(utxo)
                     ? html`<s title="dust">${utxo.value}</s>`
                     : utxo.value}
-                  ${" "}sat at${" "}
+                  ${" "}sat
                   ${utxo.status.block_time
-                    ? new Date(utxo.status.block_time * 1000).toLocaleString()
-                    : "<not confirmed>"}${" "}
+                    ? " at " +
+                      new Date(utxo.status.block_time * 1000).toLocaleString()
+                    : utxo.status.confirmations
+                    ? ` ${utxo.status.confirmations} confs`
+                    : utxo.status.confirmed
+                    ? ` confirmed`
+                    : " <not confirmed>"}${" "}
                   <a
                     target="_blank"
                     href="https://www.blockchain.com/ru/explorer/transactions/btc/${utxo.txid}"
