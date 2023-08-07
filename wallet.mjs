@@ -129,9 +129,6 @@ export class BitcoinWallet {
         })
       )
     ).flat(1);
-
-    // Possible to use this endpoint
-    // https://blockchain.info/unspent?active=$address
   }
 
   /**
@@ -297,7 +294,7 @@ export class BitcoinWallet {
     const packedTx = packTx(spendingTx);
 
     console.info(bufToHex(packedTx));
-    // console.info(readTx(packedTx)[0]);
+    console.info(readTx(packedTx)[0]);
 
     const spendingUtxosSum = spendingUtxos.reduce(
       (acc, cur) => acc + Number(cur.value),

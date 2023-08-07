@@ -89,8 +89,6 @@ function WalletTxSendView({
 }) {
   const tx = readTx(txRaw)[0];
 
-  console.info(tx);
-
   const myAddresses = wallet.getAddresses();
 
   const outsideValue = tx.txOut
