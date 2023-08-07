@@ -10,7 +10,7 @@ export function LoginView({ onLogin }) {
   const [wifs, setWifs] = useState("");
 
   const onGenerate = () => {
-    setWifs([1, 2, 3].map(() => generateRandomWif()).join("\n"));
+    setWifs([1].map(() => generateRandomWif()).join("\n"));
   };
   const onNext = () => {
     if (!wifs) {
