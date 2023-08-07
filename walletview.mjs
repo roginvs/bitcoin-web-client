@@ -36,6 +36,36 @@ function btcStrToSat(str) {
 }
 
 /**
+ * @param {{
+ *   wallet: BitcoinWallet,
+ *   onClose: () => void,
+ * }} props
+ */
+function ExportView({ wallet, onClose }) {
+  return html`
+    <div class="send_view">
+      <div
+        class="tx_confirm_row"
+        style="justify-content: center; margin-bottom: 5px;  margin-top: 20px;"
+      >
+        This is private keys for your wallets:
+      </div>
+      <textarea
+        style="width: 100%; resize: none; margin-bottom: 10px"
+        placeholder=""
+        title=""
+        rows="10"
+        value=${wallet.exportPrivateKey()}
+      />
+
+      <div class="flex_column_center">
+        <button onClick=${onClose} style="width: 150px">Back</button>
+      </div>
+    </div>
+  `;
+}
+
+/**
  * @typedef {Record<string, number>} FeeEstimates
  */
 
@@ -115,7 +145,7 @@ function WalletTxSendView({
         .find((blockN) => feeEstimates[blockN] < feeRate) || ">1008"
     : "";
 
-  return html` <div class="send_view">
+  return html`<div class="send_view">
     <div
       class="tx_confirm_row"
       style="justify-content: center; margin-bottom: 5px;  margin-top: 20px;"
@@ -297,11 +327,8 @@ export function WalletView({ wallet, onLogout }) {
       : "";
   };
 
-  const onExport = (/** @type {MouseEvent} */ e) => {
-    e.preventDefault();
+  const [exportView, setExportView] = useState(false);
 
-    prompt("Here your private key:", wallet.exportPrivateKey());
-  };
   const onLogoutClick = (/** @type {MouseEvent} */ e) => {
     e.preventDefault();
     if (!confirm("Did you save you private key?")) {
@@ -348,64 +375,15 @@ export function WalletView({ wallet, onLogout }) {
             )}
           </div>
 
-          ${!(readyTxWithSum && balance && fee && value)
-            ? html`<div class="send_view">
-                <label>Send to address:</label>
-                <input
-                  type="text"
-                  placeholder="Enter address"
-                  title="Destination address"
-                  value=${dstAddr}
-                  onInput=${(/** @type {any} */ e) => {
-                    setDstAddr(e.target.value);
-                  }}
-                  style="margin-bottom: 5px"
-                />
-                <label>Amount (${euroPrice(value)}):</label>
-                <div class="flex_row" style="margin-bottom: 5px">
-                  <input
-                    style="width: 100%"
-                    type="text"
-                    placeholder="Enter btc amount"
-                    title="Amount"
-                    value=${valueStr}
-                    onInput=${(/** @type {any} */ e) => {
-                      setValueStr(e.target.value);
-                    }}
-                  />
-                  <button class="btn" onClick=${onMaxClick}>max</button>
-                </div>
-                <label>Fee (${euroPrice(fee)}): </label>
-                <div class="flex_row" style="margin-bottom: 10px">
-                  <input
-                    style="width: 100%"
-                    type="text"
-                    placeholder="Fee"
-                    title="Fee"
-                    value=${feeStr}
-                    onInput=${(/** @type {any} */ e) => {
-                      setFeeStr(e.target.value);
-                    }}
-                  />
-                  <button class="btn" onClick=${() => setFeeStr("0.000025")}>
-                    2500sat
-                  </button>
-                  <button class="btn" onClick=${() => setFeeStr("0.00005")}>
-                    5000sat
-                  </button>
-                  <button class="btn" onClick=${() => setFeeStr("0.0001")}>
-                    10000sat
-                  </button>
-                </div>
-                <button
-                  class="btn"
-                  disabled=${!isSendAvailable}
-                  onClick=${onSendClick}
-                >
-                  Create transaction
-                </button>
-              </div>`
-            : html`<${WalletTxSendView}
+          ${exportView
+            ? html`<${ExportView}
+                wallet=${wallet}
+                onClose=${() => {
+                  setExportView(false);
+                }}
+              />`
+            : readyTxWithSum && balance && fee && value
+            ? html`<${WalletTxSendView}
                 wallet=${wallet}
                 txRaw=${readyTxWithSum[0]}
                 spendingSum=${readyTxWithSum[1]}
@@ -415,16 +393,79 @@ export function WalletView({ wallet, onLogout }) {
                   loadUtxos();
                 }}
                 feeEstimates=${feeEstimates}
-              />`}
+              />`
+            : html`<div class="send_view">
+                  <label>Send to address:</label>
+                  <input
+                    type="text"
+                    placeholder="Enter address"
+                    title="Destination address"
+                    value=${dstAddr}
+                    onInput=${(/** @type {any} */ e) => {
+                      setDstAddr(e.target.value);
+                    }}
+                    style="margin-bottom: 5px"
+                  />
+                  <label>Amount (${euroPrice(value)}):</label>
+                  <div class="flex_row" style="margin-bottom: 5px">
+                    <input
+                      style="width: 100%"
+                      type="text"
+                      placeholder="Enter btc amount"
+                      title="Amount"
+                      value=${valueStr}
+                      onInput=${(/** @type {any} */ e) => {
+                        setValueStr(e.target.value);
+                      }}
+                    />
+                    <button class="btn" onClick=${onMaxClick}>max</button>
+                  </div>
+                  <label>Fee (${euroPrice(fee)}): </label>
+                  <div class="flex_row" style="margin-bottom: 10px">
+                    <input
+                      style="width: 100%"
+                      type="text"
+                      placeholder="Fee"
+                      title="Fee"
+                      value=${feeStr}
+                      onInput=${(/** @type {any} */ e) => {
+                        setFeeStr(e.target.value);
+                      }}
+                    />
+                    <button class="btn" onClick=${() => setFeeStr("0.000025")}>
+                      2500sat
+                    </button>
+                    <button class="btn" onClick=${() => setFeeStr("0.00005")}>
+                      5000sat
+                    </button>
+                    <button class="btn" onClick=${() => setFeeStr("0.0001")}>
+                      10000sat
+                    </button>
+                  </div>
+                  <button
+                    class="btn"
+                    disabled=${!isSendAvailable}
+                    onClick=${onSendClick}
+                  >
+                    Create transaction
+                  </button>
+                </div>
+
+                <div
+                  class="tx_confirm_row"
+                  style="margin-top: 15px; color: grey; width: 100%"
+                >
+                  <a
+                    href=""
+                    onClick=${(/** @type {MouseEvent} */ e) => {
+                      e.preventDefault();
+                      setExportView(true);
+                    }}
+                    >Export key</a
+                  >
+                  <a href="" onClick=${onLogoutClick}>Logout</a>
+                </div> `}
         `
       : ""}
-
-    <div
-      class="tx_confirm_row"
-      style="margin-top: 15px; color: grey; width: 100%"
-    >
-      <a href="" onClick=${onExport}>Export key</a>
-      <a href="" onClick=${onLogoutClick}>Logout</a>
-    </div>
   </div>`;
 }
