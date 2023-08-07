@@ -38,7 +38,7 @@ export function App(props) {
         keys.map((key) => bufToHex(key)).join(" ")
       );
     }
-    setWallet(new BitcoinWallet(arrayToBigint(key)));
+    setWallet(new BitcoinWallet(keys.map((key) => arrayToBigint(key))));
   };
 
   if (!wallet) {

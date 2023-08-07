@@ -56,7 +56,7 @@ function ExportView({ wallet, onClose }) {
         title=""
         rows="10"
         readonly="true"
-        value=${wallet.exportPrivateKey()}
+        value=${wallet.exportPrivateKeys().join("\n")}
       />
 
       <div class="flex_column_center">
@@ -91,13 +91,17 @@ function WalletTxSendView({
 
   console.info(tx);
 
-  const myAddress = wallet.getAddress();
+  const myAddresses = wallet.getAddresses();
 
   const outsideValue = tx.txOut
-    .filter((txout) => pkScriptToAddress(txout.script) !== myAddress)
+    .filter(
+      (txout) => !myAddresses.includes(pkScriptToAddress(txout.script) || "")
+    )
     .reduce((acc, cur) => acc + Number(cur.value), 0);
   const changeValue = tx.txOut
-    .filter((txout) => pkScriptToAddress(txout.script) === myAddress)
+    .filter((txout) =>
+      myAddresses.includes(pkScriptToAddress(txout.script) || "")
+    )
     .reduce((acc, cur) => acc + Number(cur.value), 0);
 
   const fee = spendingSum - changeValue - outsideValue;
@@ -155,7 +159,7 @@ function WalletTxSendView({
     </div>
     ${tx.txOut.map((txout) => {
       const dstAddr = pkScriptToAddress(txout.script);
-      const isMyAddress = dstAddr === myAddress;
+      const isMyAddress = myAddresses.includes(dstAddr || "");
       return html`
         <div class="tx_confirm_row">
           ${isMyAddress
@@ -230,7 +234,7 @@ function WalletTxSendView({
  */
 export function WalletView({ wallet, onLogout }) {
   const [utxos, setUtxos] = useState(
-    /** @type {null | import("./wallet.defs.js").Utxo[]} */
+    /** @type {null | import("./wallet.defs.js").UtxoWithKeyIndex[]} */
     (null)
   );
   const [balance, setBalance] = useState(/** @type {null | number} */ (null));
@@ -281,7 +285,7 @@ export function WalletView({ wallet, onLogout }) {
     onMaxClick();
   }, [balance]);
 
-  const [dstAddr, setDstAddr] = useState(wallet.getAddress());
+  const [dstAddr, setDstAddr] = useState(wallet.getAddress(0));
 
   const isSendAvailable =
     dstAddr &&
@@ -345,9 +349,9 @@ export function WalletView({ wallet, onLogout }) {
   };
 
   return html`<div class="view flex_column_center">
-    <div>Your address:</div>
+    <div>Your addresses:</div>
     <div style="margin-bottom: 10px;">
-      <b>${wallet.getAddress()}</b>
+      ${wallet.getAddresses().map((addr) => html`<div><b>${addr}</b><//>`)}
     </div>
     <div style="">
       ${balance !== null
