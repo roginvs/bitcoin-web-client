@@ -41,6 +41,9 @@ export class BitcoinWallet {
     this.#privkeys = privKeys.map((privKey) =>
       typeof privKey === "bigint" ? privKey : arrayToBigint(privKey)
     );
+    if (this.#privkeys.length === 0) {
+      throw new Error(`No private keys provided!`);
+    }
   }
   /** @type {bigint[]} */
   #privkeys;
@@ -107,9 +110,10 @@ export class BitcoinWallet {
       .filter((utxo) => !isDust(utxo))
       .sort((a, b) => a.value - b.value);
 
-    const totalPossibleValue = possibleUtxos
-      .filter((utxo) => !isDust(utxo))
-      .reduce((acc, cur) => acc + cur.value, 0);
+    const totalPossibleValue = possibleUtxos.reduce(
+      (acc, cur) => acc + cur.value,
+      0
+    );
     if (totalPossibleValue < amount + fee) {
       throw new Error(`Total value is lower than amount and fee!`);
     }
@@ -191,8 +195,8 @@ export class BitcoinWallet {
         ),
     };
 
-    for (let i = 0; i < spendingUtxos.length; i++) {
-      const utxo = spendingUtxos[i];
+    for (let utxoIndex = 0; utxoIndex < spendingUtxos.length; utxoIndex++) {
+      const utxo = spendingUtxos[utxoIndex];
 
       const spendingPkScript = addressToPkScript(
         this.getAddress(utxo.keyIndex)
@@ -200,7 +204,7 @@ export class BitcoinWallet {
 
       const dataToSig = getOpChecksigSignatureValueWitness(
         spendingTx,
-        i,
+        utxoIndex,
         p2wpkhProgramForOpChecksig(spendingPkScript.slice(2)),
         BigInt(utxo.value),
         0x01
@@ -243,7 +247,7 @@ export class BitcoinWallet {
 
       const signatureWithHashType = joinBuffers(sigDer, new Uint8Array([0x01]));
 
-      const witness = spendingTx.txIn[i].witness;
+      const witness = spendingTx.txIn[utxoIndex].witness;
       if (!witness) {
         throw new Error(`Internal error`);
       }
