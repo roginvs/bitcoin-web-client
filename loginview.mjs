@@ -4,23 +4,29 @@ import { useState } from "./thirdparty/hooks.mjs";
 import { generateRandomWif } from "./wallet.mjs";
 
 /**
- * @param {{ onLogin: (key: ArrayBuffer, rememberMe: boolean) => void}} props
+ * @param {{ onLogin: (keys: ArrayBuffer[], rememberMe: boolean) => void}} props
  */
 export function LoginView({ onLogin }) {
-  const [wif, setWif] = useState("");
+  const [wifs, setWifs] = useState("");
 
   const onGenerate = () => {
-    setWif(generateRandomWif());
+    setWifs([1, 2, 3].map(() => generateRandomWif()).join("\n"));
   };
   const onNext = () => {
-    if (!wif) {
+    if (!wifs) {
       return;
     }
-    const key = importPrivateKeyWifP2WPKH(wif);
+
+    const keys = wifs
+      .split("\n")
+      .map((x) => x.trim())
+      .filter((x) => x)
+      .filter((x) => x.startsWith("p2wpkh:"))
+      .map((x) => importPrivateKeyWifP2WPKH(x));
     const isRemember = /** @type {HTMLInputElement} */ (
       document.getElementById("remember_me_checkbox")
     ).checked;
-    onLogin(key, isRemember);
+    onLogin(keys, isRemember);
   };
 
   return html`<div class="view flex_column_center">
@@ -28,16 +34,16 @@ export function LoginView({ onLogin }) {
       <b>Welcome to web Bitcoin wallet!</b>
     </div>
 
-    <label>Enter your WIF wallet: </label>
+    <label>Enter your WIF wallets, one per line: </label>
     <textarea
       style="width: 100%; resize: none; margin-bottom: 10px"
       type="text"
-      placeholder=""
+      placeholder="p2wpkh:xxxxxxxxx"
       title=""
-      rows="5"
-      value=${wif}
+      rows="15"
+      value=${wifs}
       onInput=${(/** @type {any} */ e) => {
-        setWif(e.target.value);
+        setWifs(e.target.value);
       }}
     />
 
@@ -48,7 +54,7 @@ export function LoginView({ onLogin }) {
 
     <div style="display: flex; justify-content: space-between; width: 100%">
       <button style="width: 200px" onClick=${onGenerate}>Generate random</button>
-      <button style="width: 200px" onClick=${onNext} disabled=${!wif}>Next</button>
+      <button style="width: 200px" onClick=${onNext} disabled=${!wifs}>Next</button>
     </div>
   </div>`;
 }

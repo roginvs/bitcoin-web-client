@@ -35,19 +35,23 @@ export function isDust(utxo) {
 export class BitcoinWallet {
   /**
    *
-   * @param {Uint8Array | bigint} privKey
+   * @param {(Uint8Array | bigint)[]} privKeys
    */
-  constructor(privKey) {
-    this.#privkey =
-      typeof privKey === "bigint" ? privKey : arrayToBigint(privKey);
+  constructor(privKeys) {
+    this.#privkeys = privKeys.map((privKey) =>
+      typeof privKey === "bigint" ? privKey : arrayToBigint(privKey)
+    );
   }
-  /** @type {bigint} */
-  #privkey;
+  /** @type {bigint[]} */
+  #privkeys;
 
-  #getPublicPoint() {
+  /**
+   * @param {number} keyIndex
+   */
+  #getPublicPoint(keyIndex) {
     const publicKeyPoint = modulo_power_point(
       Secp256k1.G,
-      this.#privkey,
+      this.#privkeys[keyIndex],
       Secp256k1.a,
       Secp256k1.p
     );
@@ -56,8 +60,12 @@ export class BitcoinWallet {
     }
     return publicKeyPoint;
   }
-  #getCompressedPubkey() {
-    const point = this.#getPublicPoint();
+
+  /**
+   * @param {number} keyIndex
+   */
+  #getCompressedPubkey(keyIndex) {
+    const point = this.#getPublicPoint(keyIndex);
     const buf = bigintToArray(point[0]);
     const out = new Uint8Array(new ArrayBuffer(buf.byteLength + 1));
     out.set(new Uint8Array(buf), 1);
@@ -66,50 +74,31 @@ export class BitcoinWallet {
   }
 
   /**
-   * @returns {Promise<import("./wallet.defs.js").Utxo[]>}
+   * @returns {Promise<import("./wallet.defs.js").UtxoWithKeyIndex[]>}
    */
   async getUtxo() {
-    const url = `https://blockstream.info/api/address/${this.getAddress()}/utxo`;
-    return await fetch(url).then((res) => res.json());
+    const result =
+      /** @type {Promise<import("./wallet.defs.js").UtxoWithKeyIndex[]} */ [];
+    for (let keyIndex = 0; keyIndex < this.#privkeys.length; keyIndex++) {
+      const url = `https://blockstream.info/api/address/${this.getAddress(
+        keyIndex
+      )}/utxo`;
 
+      /** @type {import("./wallet.defs.js").Utxo[]}  */
+      const utxos = await fetch(url).then((res) => res.json());
+      for (const utxo of utxos) {
+        result.push({ ...utxo, keyIndex });
+      }
+    }
+    return result;
+
+    // Possible to use this endpoint
     // https://blockchain.info/unspent?active=$address
-
-    await new Promise((r) => setTimeout(r, 100));
-    return [
-      {
-        /** @type {any} */
-        txid: "989774a2e572e2d7eb20f011781df3d68c5634c9e50514d809f075fa685773ae",
-        vout: 0,
-        status: {
-          confirmed: true,
-          block_height: 799063,
-          /** @type {any} */
-          block_hash:
-            "0000000000000000000267694975538c71524f4c80bdfcbd4c4b9aed7ea2ef74",
-          block_time: 1689587071,
-        },
-        value: 42643,
-      },
-      {
-        /** @type {any} */
-        txid: "aaaa74a2e572e2d7eb20f011781df3d68c5634c9e50514d809f075fa685773ae",
-        vout: 10,
-        status: {
-          confirmed: true,
-          block_height: 799063,
-          /** @type {any} */
-          block_hash:
-            "0000000000000000000267694975538c71524f4c80bdfcbd4c4b9aed7ea2ef74",
-          block_time: 1689587071,
-        },
-        value: 26433,
-      },
-    ];
   }
 
   /**
    *
-   * @param {import("./wallet.defs.js").Utxo[]} utxos
+   * @param {import("./wallet.defs.js").UtxoWithKeyIndex[]} utxos
    * @param {string} dstAddr
    * @param {number} amount
    * @param {number} fee
@@ -140,9 +129,12 @@ export class BitcoinWallet {
     }
 
     const dstPkScript = addressToPkScript(dstAddr);
-    const changePkScript = addressToPkScript(this.getAddress());
 
-    const myPublicKey = this.#getCompressedPubkey();
+    const changePkScript = addressToPkScript(this.getAddress(0));
+
+    const myPublicKeys = this.#privkeys.map((_, index) =>
+      this.#getCompressedPubkey(index)
+    );
 
     const changeValue =
       spendingUtxos.reduce((acc, cur) => acc + cur.value, 0) - amount - fee;
@@ -167,7 +159,7 @@ export class BitcoinWallet {
             new ArrayBuffer(73)
           ),
           /** @type {import("./bitcoin/protocol/messages.types.js").WitnessStackItem} */ (
-            myPublicKey
+            myPublicKeys[utxo.keyIndex]
           ),
         ],
       })),
@@ -202,11 +194,17 @@ export class BitcoinWallet {
     };
 
     for (let i = 0; i < spendingUtxos.length; i++) {
+      const utxo = spendingUtxos[i];
+
+      const spendingPkScript = addressToPkScript(
+        this.getAddress(utxo.keyIndex)
+      );
+
       const dataToSig = getOpChecksigSignatureValueWitness(
         spendingTx,
         i,
-        p2wpkhProgramForOpChecksig(changePkScript.slice(2)),
-        BigInt(spendingUtxos[i].value),
+        p2wpkhProgramForOpChecksig(spendingPkScript.slice(2)),
+        BigInt(utxo.value),
         0x01
       );
 
@@ -223,14 +221,14 @@ export class BitcoinWallet {
         curve: Secp256k1,
         k,
         msgHash: signingInt,
-        privateKey: this.#privkey,
+        privateKey: this.#privkeys[utxo.keyIndex],
       });
 
       if (
         !check_signature({
           curve: Secp256k1,
           msgHash: signingInt,
-          publicKey: this.#getPublicPoint(),
+          publicKey: this.#getPublicPoint(utxo.keyIndex),
           r: sig.r,
           s: sig.s,
         })
@@ -288,8 +286,11 @@ export class BitcoinWallet {
     console.info(result);
   }
 
-  getAddress() {
-    const pubKey = this.#getCompressedPubkey();
+  /**
+   * @param {number} keyIndex
+   */
+  getAddress(keyIndex) {
+    const pubKey = this.#getCompressedPubkey(keyIndex);
     const address = bitcoin_address_P2WPKH_from_public_key(pubKey);
     if (!address) {
       throw new Error(`Something wrong with address`);
@@ -297,8 +298,22 @@ export class BitcoinWallet {
     return address;
   }
 
-  exportPrivateKey() {
-    return exportPrivateKeyWifP2WPKH(bigintToArray(this.#privkey), true);
+  getAddresses() {
+    return this.#privkeys.map((_, index) => this.getAddress(index));
+  }
+
+  /**
+   * @param {number} keyIndex
+   */
+  exportPrivateKey(keyIndex) {
+    return exportPrivateKeyWifP2WPKH(
+      bigintToArray(this.#privkeys[keyIndex]),
+      true
+    );
+  }
+
+  exportPrivateKeys() {
+    return this.#privkeys.map((_, index) => this.exportPrivateKey(index));
   }
 }
 

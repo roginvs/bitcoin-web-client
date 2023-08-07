@@ -10,3 +10,7 @@ export type Utxo = {
   status: UtxoStatus;
   value: number;
 };
+
+export type UtxoWithKeyIndex = Utxo & {
+  keyIndex: number;
+};

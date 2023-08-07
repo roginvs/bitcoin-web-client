@@ -13,12 +13,14 @@ const LOCAL_STORAGE_PRIVATE_KEY_KEY = "bitcoin_wallet_private_key";
  */
 export function App(props) {
   const [wallet, setWallet] = useState(() => {
-    const privateKeyHex = localStorage.getItem(LOCAL_STORAGE_PRIVATE_KEY_KEY);
-    if (!privateKeyHex) {
+    const privateKeysHex = localStorage.getItem(LOCAL_STORAGE_PRIVATE_KEY_KEY);
+    if (!privateKeysHex) {
       return null;
     }
-    const privKey = arrayToBigint(parseHexToBuf(privateKeyHex));
-    return new BitcoinWallet(privKey);
+    const privKeys = privateKeysHex
+      .split(" ")
+      .map((keyHex) => arrayToBigint(parseHexToBuf(keyHex)));
+    return new BitcoinWallet(privKeys);
   });
 
   const onLogout = () => {
@@ -27,11 +29,14 @@ export function App(props) {
   };
 
   const onLogin = (
-    /** @type {ArrayBuffer} */ key,
+    /** @type {ArrayBuffer[]} */ keys,
     /** @type {boolean} */ isRemember
   ) => {
     if (isRemember) {
-      localStorage.setItem(LOCAL_STORAGE_PRIVATE_KEY_KEY, bufToHex(key));
+      localStorage.setItem(
+        LOCAL_STORAGE_PRIVATE_KEY_KEY,
+        keys.map((key) => bufToHex(key)).join(" ")
+      );
     }
     setWallet(new BitcoinWallet(arrayToBigint(key)));
   };
