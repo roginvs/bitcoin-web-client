@@ -237,14 +237,17 @@ export function WalletView({ wallet, onLogout }) {
 
   const loadUtxos = useCallback(
     () =>
-      wallet.getUtxo().then((utxos) => {
-        setUtxos(utxos);
-        setBalance(
-          utxos
-            .filter((utxo) => !isDust(utxo))
-            .reduce((acc, cur) => acc + cur.value, 0)
-        );
-      }),
+      wallet
+        .getUtxo()
+        .then((utxos) => {
+          setUtxos(utxos);
+          setBalance(
+            utxos
+              .filter((utxo) => !isDust(utxo))
+              .reduce((acc, cur) => acc + cur.value, 0)
+          );
+        })
+        .catch((e) => alert(`${e.message}`)),
     [wallet]
   );
   useEffect(() => {
