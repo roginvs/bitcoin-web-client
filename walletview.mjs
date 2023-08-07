@@ -234,7 +234,7 @@ function WalletTxSendView({
  */
 export function WalletView({ wallet, onLogout }) {
   const [utxos, setUtxos] = useState(
-    /** @type {null | import("./wallet.defs.js").UtxoWithKeyIndex[]} */
+    /** @type {null | import("./wallet.defs.js").UtxoWithMeta[]} */
     (null)
   );
   const [balance, setBalance] = useState(/** @type {null | number} */ (null));

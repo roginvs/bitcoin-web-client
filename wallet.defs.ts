@@ -12,8 +12,9 @@ export type Utxo = {
   value: number;
 };
 
-export type UtxoWithKeyIndex = Utxo & {
+export type UtxoWithMeta = Utxo & {
   keyIndex: number;
+  wallet: string;
 };
 
 export type BlockchainInfoUtxo = {

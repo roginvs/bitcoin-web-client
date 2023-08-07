@@ -77,12 +77,12 @@ export class BitcoinWallet {
   }
 
   /**
-   * @returns {Promise<import("./wallet.defs.js").UtxoWithKeyIndex[]>}
+   * @returns {Promise<import("./wallet.defs.js").UtxoWithMeta[]>}
    */
   async getUtxo() {
     const FETCH_ONE_BY_ONE = true;
     if (FETCH_ONE_BY_ONE) {
-      /** @type {import("./wallet.defs.js").UtxoWithKeyIndex[]} */
+      /** @type {import("./wallet.defs.js").UtxoWithMeta[]} */
       const result = [];
       for (const keyIndex of this.#getPrivKeysIndexes()) {
         const address = this.getAddress(keyIndex);
@@ -110,7 +110,9 @@ export class BitcoinWallet {
             value: utxo.value,
           }));
         }
-        utxos.forEach((utxo) => result.push({ ...utxo, keyIndex }));
+        utxos.forEach((utxo) =>
+          result.push({ ...utxo, keyIndex, wallet: address })
+        );
       }
       return result;
     }
@@ -118,13 +120,12 @@ export class BitcoinWallet {
     return (
       await Promise.all(
         this.#getPrivKeysIndexes().map(async (keyIndex) => {
-          const url = `https://blockstream.info/api/address/${this.getAddress(
-            keyIndex
-          )}/utxo`;
+          const address = this.getAddress(keyIndex);
+          const url = `https://blockstream.info/api/address/${address}/utxo`;
           /** @type {import("./wallet.defs.js").Utxo[] }  */
           const utxos = await fetch(url).then((res) => res.json());
 
-          return utxos.map((utxo) => ({ ...utxo, keyIndex }));
+          return utxos.map((utxo) => ({ ...utxo, keyIndex, wallet: address }));
         })
       )
     ).flat(1);
@@ -135,7 +136,7 @@ export class BitcoinWallet {
 
   /**
    *
-   * @param {import("./wallet.defs.js").UtxoWithKeyIndex[]} utxos
+   * @param {import("./wallet.defs.js").UtxoWithMeta[]} utxos
    * @param {string} dstAddr
    * @param {number} amount
    * @param {number} fee
