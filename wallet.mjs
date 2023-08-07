@@ -80,6 +80,21 @@ export class BitcoinWallet {
    * @returns {Promise<import("./wallet.defs.js").UtxoWithKeyIndex[]>}
    */
   async getUtxo() {
+    const FETCH_ONE_BY_ONE = true;
+    if (FETCH_ONE_BY_ONE) {
+      /** @type {import("./wallet.defs.js").UtxoWithKeyIndex[]} */
+      const result = [];
+      for (const keyIndex of this.#getPrivKeysIndexes()) {
+        const url = `https://blockstream.info/api/address/${this.getAddress(
+          keyIndex
+        )}/utxo`;
+        /** @type {import("./wallet.defs.js").Utxo[]}  */
+        const utxos = await fetch(url).then((res) => res.json());
+        utxos.forEach((utxo) => result.push({ ...utxo, keyIndex }));
+      }
+      return result;
+    }
+
     return (
       await Promise.all(
         this.#getPrivKeysIndexes().map(async (keyIndex) => {
