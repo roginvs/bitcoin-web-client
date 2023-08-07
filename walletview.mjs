@@ -55,6 +55,7 @@ function ExportView({ wallet, onClose }) {
         placeholder=""
         title=""
         rows="10"
+        readonly="true"
         value=${wallet.exportPrivateKey()}
       />
 
