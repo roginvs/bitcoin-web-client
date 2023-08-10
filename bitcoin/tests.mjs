@@ -37,7 +37,7 @@ export function eq(a, b, msg) {
  * @param {() => void | Promise<void>} cb
  */
 export function describe(msg, cb) {
-  if (location.hostname !== "127.0.0.1") {
+  if (typeof location === "object" && location.hostname !== "127.0.0.1") {
     return;
   }
   console.log(`=== ${msg} ===`);
