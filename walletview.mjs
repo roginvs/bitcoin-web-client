@@ -8,7 +8,6 @@ import { useCallback, useEffect, useState } from "./thirdparty/hooks.mjs";
 import { BitcoinWallet, isDust } from "./wallet.mjs";
 
 /**
- *
  * @param {number} sat
  */
 function satToBtcStr(sat) {
@@ -48,7 +47,7 @@ function ExportView({ wallet, onClose }) {
         class="tx_confirm_row"
         style="justify-content: center; margin-bottom: 5px;  margin-top: 20px;"
       >
-        This is private keys for your wallets:
+        Those are private keys for your wallets:
       </div>
       <textarea
         style="width: 100%; resize: none; margin-bottom: 10px"
