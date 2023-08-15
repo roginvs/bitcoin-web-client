@@ -127,7 +127,7 @@ function WalletTxSendView({
       const link = document.createElement("a");
       const txIdArray = [...new Uint8Array(tx.txid)].reverse();
 
-      link.href = `https://www.blockchain.com/ru/explorer/transactions/btc/${bufToHex(
+      link.href = `https://www.blockchain.com/explorer/transactions/btc/${bufToHex(
         new Uint8Array(txIdArray).buffer
       )}`;
       link.target = "_blank";
@@ -400,7 +400,7 @@ export function WalletView({ wallet, onLogout }) {
                       <div>
                         <a
                           target="_blank"
-                          href="https://www.blockchain.com/ru/explorer/transactions/btc/${utxo.txid}"
+                          href="https://www.blockchain.com/explorer/transactions/btc/${utxo.txid}"
                           >${utxo.txid.slice(0, 8)}</a
                         >
                       </div>
