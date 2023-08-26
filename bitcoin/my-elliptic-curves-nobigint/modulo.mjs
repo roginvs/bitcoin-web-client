@@ -191,7 +191,7 @@ function modulo_mul(a, b, module) {
  * @param {MyBigNumber} module
  * @returns {MyBigNumber}
  */
-function modulo_power(a, b, module) {
+export function modulo_power(a, b, module) {
   const bitsTotal = b.length * 32;
   let base = a;
 
