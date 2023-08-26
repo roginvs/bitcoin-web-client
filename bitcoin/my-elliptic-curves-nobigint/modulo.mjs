@@ -362,58 +362,29 @@ describe("modulo_power", () => {
 
 /**
  *
- * @param {bigint} a
- * @param {bigint} module
- */
-function legendre_symbol(a, module) {
-  return modulo_power(a, (module - BigInt(1)) / BigInt(2), module);
-}
-
-/**
- *
- * @param {bigint} a
- * @param {bigint} module
+ * @param {MyBigNumber} a
+ * @param {MyBigNumber} module
  */
 export function square_root(a, module) {
-  // Tonelli–Shanks_algorithm
-  if (legendre_symbol(a, module) != BigInt(1)) {
-    throw new Error(`Not a quadratic residue`);
+  const one = new Array(module.length).fill(0);
+  one[one.length - 1] = 1;
+  let power = number_add(module, one);
+  if (get_bit_at(power, 0) !== 0 || get_bit_at(power, 1) !== 0) {
+    throw new Error(`Module+1 is not divideable by 4`);
   }
-  /**
-   *
-   * @param {bigint} p
-   * @returns
-   */
-  function get_2s_q(p) {
-    const p1 = p - BigInt(1);
-    let q = p1;
-    let s = BigInt(0);
-    while (q % BigInt(2) == BigInt(0)) {
-      q = q / BigInt(2);
-      s += BigInt(1);
-    }
-    // if (BigInt(2) ** BigInt(s) * q !== p1) {
-    //   throw new Error("Internal error");
-    // }
-    // if (q % BigInt(2) == BigInt(0)) {
-    //   throw new Error("Internal error ");
-    // }
-
-    return { s, q };
-  }
-
-  const { s, q } = get_2s_q(module);
-
-  if (s == BigInt(1)) {
-    const result = modulo_power(a, (module + BigInt(1)) / BigInt(4), module);
-    // if (modulo_power(result, BigInt(2), module) != a) {
-    //   throw new Error("Internal error");
-    // }
-    return result;
-  } else {
-    throw new Error("LOL not implemented");
-  }
+  power = shift(power, 2);
+  const result = modulo_power(a, power, module);
+  return result;
 }
+
+describe("square_root", () => {
+  const module = [0x805e692e, 0xeebc4f6f];
+  const num = [0x00abccdd, 0x44331169];
+  const root = square_root(num, module);
+
+  const numAgain = modulo_mul(root, root, module);
+  eq(num, numAgain);
+});
 
 /**
  * Return (g, x, y) such that a*x + b*y = g = gcd(a, b)
