@@ -185,6 +185,18 @@ function modulo_mul(a, b, module) {
 }
 
 /**
+ *
+ * @param {number} len
+ * @param {number} value
+ * @returns {MyBigNumber}
+ */
+function to_big_num(len, value) {
+  let result = new Array(len).fill(0);
+  result[result.length - 1] = value;
+  return result;
+}
+
+/**
  * Return (a ** b) % module
  * @param {MyBigNumber} a
  * @param {MyBigNumber} b
@@ -195,8 +207,7 @@ export function modulo_power(a, b, module) {
   const bitsTotal = b.length * 32;
   let base = a;
 
-  let result = new Array(module.length).fill(0);
-  result[result.length - 1] = 1;
+  let result = to_big_num(module.length, 1);
 
   for (let bitIndex = 0; bitIndex < bitsTotal; bitIndex++) {
     const bit = get_bit_at(b, bitIndex);
@@ -366,8 +377,7 @@ describe("modulo_power", () => {
  * @param {MyBigNumber} module
  */
 export function square_root(a, module) {
-  const one = new Array(module.length).fill(0);
-  one[one.length - 1] = 1;
+  const one = to_big_num(module.length, 1);
   let power = number_add(module, one);
   if (get_bit_at(power, 0) !== 0 || get_bit_at(power, 1) !== 0) {
     throw new Error(`Module+1 is not divideable by 4`);
@@ -384,6 +394,23 @@ describe("square_root", () => {
 
   const numAgain = modulo_mul(root, root, module);
   eq(num, numAgain);
+});
+
+/**
+ * Find inverse if module is a prime number
+ * @param {MyBigNumber} n
+ * @param {MyBigNumber} module
+ */
+export function inverse(n, module) {
+  const m = number_sub(module, to_big_num(module.length, 2));
+  return modulo_power(n, m, module);
+}
+
+describe(`inverse`, () => {
+  const module = [0x805e692e, 0xeebc4f6f];
+  const num = [0x00abccdd, 0x44331169];
+  const inv = inverse(num, module);
+  eq(modulo_mul(num, inv, module), to_big_num(module.length, 1));
 });
 
 /**
