@@ -1,6 +1,11 @@
 import { describe, eq } from "../tests.mjs";
 
 /**
+ * @typedef {import("./types").MyBigNumber} MyBigNumber
+ *
+ */
+
+/**
  * Adds 32-bit unsigned numbers
  * Returns [overflow, sum]
  * @param {number} a
@@ -28,8 +33,9 @@ function digit_sub(a, b) {
 /**
  * Returns sum of two big numbers. Must have same amount of digits
  * Result have 1 digit more due to possible overflow
- * @param {import("./types").MyBigNumber} a
- * @param {import("./types").MyBigNumber} b
+ * @param {MyBigNumber} a
+ * @param {MyBigNumber} b
+ * @returns {MyBigNumber}
  */
 function number_add(a, b) {
   const sum = new Array(a.length + 1).fill(0);
@@ -46,7 +52,7 @@ function number_add(a, b) {
 }
 
 /**
- * @param {import("./types").MyBigNumber} n
+ * @param {MyBigNumber} n
 } n 
  */
 function remove_leading_zeros(n) {
@@ -62,8 +68,9 @@ function remove_leading_zeros(n) {
 
 /**
  * Always expecting that a >= b, throws if not
- * @param {import("./types").MyBigNumber} a
- * @param {import("./types").MyBigNumber} b
+ * @param {MyBigNumber} a
+ * @param {MyBigNumber} b
+ * @returns {MyBigNumber}
  */
 function number_sub(a, b) {
   const maxlen = Math.max(a.length, b.length);
@@ -91,8 +98,8 @@ function number_sub(a, b) {
  * Returns 1 if a > b
  * Returns -1 if a < b
  * Return 0 if equal
- * @param {import("./types").MyBigNumber} a
- * @param {import("./types").MyBigNumber} b
+ * @param {MyBigNumber} a
+ * @param {MyBigNumber} b
  */
 function cmp_numbers(a, b) {
   const maxlen = Math.max(a.length, b.length);
@@ -112,34 +119,69 @@ function cmp_numbers(a, b) {
 }
 
 /**
- * @param {import("./types").MyBigNumber} a
- * @param {import("./types").MyBigNumber} b
- * @param {import("./types").MyBigNumber} module
+ * @param {MyBigNumber} a
+ * @param {MyBigNumber} b
+ * @param {MyBigNumber} module
+ * @returns {MyBigNumber}
  */
 function modulo_add(a, b, module) {
-  if (a.length !== b.length) {
-    throw new Error(`Wrong amount of digits`);
-  }
-  if (a.length !== module.length) {
-    throw new Error(`Wrong amount of digits`);
+  if (a.length !== b.length || a.length !== module.length) {
+    throw new Error(
+      `Wrong amount of digits ${a.length} ${b.length} ${module.length}`
+    );
   }
   const sum = number_add(a, b);
-  if (cmp_numbers(sum, module) !== -1) {
-    const afterReduce = number_sub(sum, module);
+  const afterReduce =
+    cmp_numbers(sum, module) !== -1 ? number_sub(sum, module) : sum;
 
-    if (afterReduce.length === a.length) {
-      return afterReduce;
-    } else if (afterReduce.length === a.length + 1) {
-      if (afterReduce[0] !== 0) {
-        throw new Error(`Internal error: must be zero`);
-      }
-      return afterReduce.slice(1);
-    } else {
-      throw new Error(`Unknown length after reduce`);
+  if (afterReduce.length === a.length) {
+    return afterReduce;
+  } else if (afterReduce.length === a.length + 1) {
+    if (afterReduce[0] !== 0) {
+      throw new Error(`Internal error: must be zero`);
     }
+    return afterReduce.slice(1);
   } else {
-    return sum;
+    throw new Error(`Unknown length after reduce`);
   }
+}
+
+/**
+ * Returns bit on a number counting from the lowest one
+ *
+ * @param {MyBigNumber} n
+ * @param {number} bitPos
+ */
+function get_bit_at(n, bitPos) {
+  const numberPos = bitPos >>> 5;
+  const bitInNumber = bitPos % 32;
+  const numberIndex = n.length - 1 - numberPos;
+  if (numberIndex < 0) {
+    throw new Error(`Outside of bounds`);
+  }
+  const num = n[numberIndex];
+  const bit = (num >>> bitInNumber) & 1;
+  return bit;
+}
+
+/**
+ * @param {MyBigNumber} a
+ * @param {MyBigNumber} b
+ * @param {MyBigNumber} module
+ * @returns {MyBigNumber}
+ */
+function modulo_mul(a, b, module) {
+  const bitsTotal = b.length * 32;
+  let base = a;
+  let result = new Array(module.length).fill(0);
+  for (let bitIndex = 0; bitIndex < bitsTotal; bitIndex++) {
+    const bit = get_bit_at(b, bitIndex);
+    if (bit) {
+      result = modulo_add(result, base, module);
+    }
+    base = modulo_add(base, base, module);
+  }
+  return result;
 }
 
 describe(`number_add`, () => {
@@ -212,11 +254,37 @@ describe(`cmp_numbers`, () => {
   eq(cmp_numbers([5, 2, 3], [5, 1, 4]), 1);
 });
 
+describe(`getBitAt`, () => {
+  eq(get_bit_at([0, 0b1101], 0), 1);
+  eq(get_bit_at([0, 0b1101], 1), 0);
+
+  eq(get_bit_at([0x80000000, 0b1101], 32 + 31 - 1), 0);
+  eq(get_bit_at([0x80000000, 0b1101], 32 + 31), 1);
+});
+
+describe("modulo_mul", () => {
+  const module = [0xffffffff, 0xffffffc5];
+
+  eq(modulo_mul([0xaabbccdd, 0xeeff3311], [0, 0], module), [0, 0], "zero");
+
+  eq(
+    modulo_mul([0xaabbccdd, 0xeeff3311], [0, 1], module),
+    [0xaabbccdd, 0xeeff3311],
+    "one"
+  );
+
+  eq(
+    modulo_mul([0xaabbccdd, 0xeeff3311], [0x66223311, 0x11884411], module),
+    [0xc2deba4a, 0x6c8ccdca],
+    "many"
+  );
+});
+
 /**
  *
- * @param {import("./types").MyBigNumber} base
- * @param {import("./types").MyBigNumber} power
- * @param {import("./types").MyBigNumber} module
+ * @param {MyBigNumber} base
+ * @param {MyBigNumber} power
+ * @param {MyBigNumber} module
  */
 export function modulo_power(base, power, module) {
   // TODO
