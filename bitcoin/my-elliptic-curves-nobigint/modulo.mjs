@@ -184,6 +184,30 @@ function modulo_mul(a, b, module) {
   return result;
 }
 
+/**
+ * Return (a ** b) % module
+ * @param {MyBigNumber} a
+ * @param {MyBigNumber} b
+ * @param {MyBigNumber} module
+ * @returns {MyBigNumber}
+ */
+function modulo_power(a, b, module) {
+  const bitsTotal = b.length * 32;
+  let base = a;
+
+  let result = new Array(module.length).fill(0);
+  result[result.length - 1] = 1;
+
+  for (let bitIndex = 0; bitIndex < bitsTotal; bitIndex++) {
+    const bit = get_bit_at(b, bitIndex);
+    if (bit) {
+      result = modulo_mul(result, base, module);
+    }
+    base = modulo_mul(base, base, module);
+  }
+  return result;
+}
+
 describe(`number_add`, () => {
   // (BigInt('0xaabbccddeeff1122004422aa') + BigInt('0xffeeccdd22441199bbcceeaa'))
   //  == BigInt('0x1aaaa99bb114322bbbc111154')
@@ -272,7 +296,11 @@ describe("modulo_mul", () => {
     [0xaabbccdd, 0xeeff3311],
     "one"
   );
+  /*
 
+  ((BigInt('0xaabbccddeeff3311') * BigInt('0x6622331111884411')) %
+     BigInt('0xffffffffffffffc5')).toString(16)
+  */
   eq(
     modulo_mul([0xaabbccdd, 0xeeff3311], [0x66223311, 0x11884411], module),
     [0xc2deba4a, 0x6c8ccdca],
@@ -280,15 +308,27 @@ describe("modulo_mul", () => {
   );
 });
 
-/**
- *
- * @param {MyBigNumber} base
- * @param {MyBigNumber} power
- * @param {MyBigNumber} module
- */
-export function modulo_power(base, power, module) {
-  // TODO
-}
+describe("modulo_power", () => {
+  const module = [0xffffffff, 0xffffffc5];
+
+  eq(modulo_power([0xaabbccdd, 0xeeff3311], [0, 0], module), [0, 1], "zero");
+
+  eq(
+    modulo_power([0xaabbccdd, 0xeeff3311], [0, 1], module),
+    [0xaabbccdd, 0xeeff3311],
+    "one"
+  );
+  /*
+  
+    ((BigInt('0xaabbccddeeff3311') ** BigInt('0x6622331111884411')) %
+       BigInt('0xffffffffffffffc5')).toString(16)
+    */
+  eq(
+    modulo_power([0xaabbccdd, 0xeeff3311], [0x66223311, 0x11884411], module),
+    [0x32fe333c, 0x98df7120],
+    "many"
+  );
+});
 
 /**
  *
