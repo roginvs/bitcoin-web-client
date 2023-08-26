@@ -208,6 +208,36 @@ export function modulo_power(a, b, module) {
   return result;
 }
 
+/**
+ *
+ * @param {MyBigNumber} n
+ * @param {number} bits
+ * @returns {MyBigNumber}
+ */
+function shift(n, bits) {
+  if (bits > 32) {
+    throw new Error(`Not implemented`);
+  }
+  const out = [...n];
+  for (let i = out.length - 1; i >= 0; i--) {
+    const digit = out[i];
+    const shiftedPart = digit & (0xffffffff >>> (32 - bits));
+    out[i] = digit >>> bits;
+    if (i < out.length - 1) {
+      const partToAdd = shiftedPart * 2 ** (32 - bits);
+      out[i + 1] += partToAdd;
+    }
+  }
+  return out;
+}
+
+describe("shift", () => {
+  eq(
+    shift([0xaabbccdd, 0x11223344, 0x55667788], 8),
+    [0x00aabbcc, 0xdd112233, 0x44556677]
+  );
+});
+
 describe(`number_add`, () => {
   // (BigInt('0xaabbccddeeff1122004422aa') + BigInt('0xffeeccdd22441199bbcceeaa'))
   //  == BigInt('0x1aaaa99bb114322bbbc111154')
