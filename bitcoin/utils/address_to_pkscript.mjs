@@ -15,11 +15,24 @@ export function addressToPkScript(addr) {
     if (!decoded) {
       throw new Error(`Failed to decode!`);
     }
-    if (decoded.version !== 0) {
-      throw new Error(`Unknown version`);
+
+    let version;
+    if (decoded.version === 0) {
+      if (decoded.program.length !== 32 && decoded.program.length !== 20) {
+        throw new Error(`Wrong length ${decoded.program.length} for version 0`);
+      }
+      version = 0x0;
+    } else if (decoded.version === 1) {
+      if (decoded.program.length !== 32) {
+        throw new Error(`Wrong length ${decoded.program.length} for version 1`);
+      }
+      version = 0x51;
+    } else {
+      throw new Error(`Unknown version ${decoded.version}`);
     }
     const buf = /** @type {import("../protocol/messages.types").PkScript} */ (
-      new Uint8Array([0, decoded.program.length, ...decoded.program]).buffer
+      new Uint8Array([version, decoded.program.length, ...decoded.program])
+        .buffer
     );
     return buf;
   } else if (addr.startsWith("1") || addr.startsWith("3")) {
@@ -87,5 +100,15 @@ describe(`addressToPkScript`, () => {
     bufToHex(addressToPkScript("3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy")),
     "a914b472a266d0bd89c13706a4132ccfb16f7c3b9fcb87",
     "P2SH"
+  );
+
+  eq(
+    bufToHex(
+      addressToPkScript(
+        "bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297"
+      )
+    ),
+    "5120a37c3903c8d0db6512e2b40b0dffa05e5a3ab73603ce8c9c4b7771e5412328f9",
+    "P2TR"
   );
 });
