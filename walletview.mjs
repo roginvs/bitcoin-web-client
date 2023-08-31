@@ -4,7 +4,12 @@ import { bufToHex } from "./bitcoin/utils/arraybuffer-hex.mjs";
 import { pkScriptToAddress } from "./bitcoin/utils/pkscript_to_address.mjs";
 import { html } from "./htm.mjs";
 import { Spinner } from "./spinner.mjs";
-import { useCallback, useEffect, useState } from "./thirdparty/hooks.mjs";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "./thirdparty/hooks.mjs";
 import { BitcoinWallet, isDust } from "./wallet.mjs";
 
 /**
@@ -236,7 +241,16 @@ export function WalletView({ wallet, onLogout }) {
     /** @type {null | import("./wallet.defs.js").UtxoWithMeta[]} */
     (null)
   );
-  const [balance, setBalance] = useState(/** @type {null | number} */ (null));
+  const balance = useMemo(
+    () =>
+      utxos
+        ? utxos
+            .filter((utxo) => !isDust(utxo))
+            .filter((utxo) => !utxo.isIgnored)
+            .reduce((acc, cur) => acc + cur.value, 0)
+        : null,
+    [utxos]
+  );
 
   const loadUtxos = useCallback(
     () =>
@@ -244,11 +258,6 @@ export function WalletView({ wallet, onLogout }) {
         .getUtxo()
         .then((utxos) => {
           setUtxos(utxos);
-          setBalance(
-            utxos
-              .filter((utxo) => !isDust(utxo))
-              .reduce((acc, cur) => acc + cur.value, 0)
-          );
         })
         .catch((e) => alert(`${e.message}`)),
     [wallet]
@@ -311,19 +320,21 @@ export function WalletView({ wallet, onLogout }) {
   const [feeEstimates, setFeeEstimates] = useState(
     /** @type {FeeEstimates | null} */ null
   );
+
+  const isHaveUtxos = !!utxos;
   useEffect(() => {
-    if (!utxos) {
+    if (!isHaveUtxos) {
       // Fetch this after we got utxos
       return;
     }
     fetch("https://blockstream.info/api/fee-estimates")
       .then((res) => res.json())
       .then((estimates) => setFeeEstimates(estimates));
-  }, [utxos]);
+  }, [isHaveUtxos]);
 
   const [btcPrice, setBtcPrice] = useState(/** @type {number | null} */ null);
   useEffect(() => {
-    if (!utxos) {
+    if (!isHaveUtxos) {
       // Fetch this after we got utxos
       return;
     }
@@ -334,7 +345,7 @@ export function WalletView({ wallet, onLogout }) {
     })
       .then((res) => res.json())
       .then((prices) => setBtcPrice(prices.price_24h));
-  }, [utxos]);
+  }, [isHaveUtxos]);
 
   const euroPrice = (/** @type {number | null} */ sat) => {
     return sat && btcPrice
@@ -375,11 +386,31 @@ export function WalletView({ wallet, onLogout }) {
           ${viewUtxos
             ? html`<div class="utxo_list">
                 ${utxos.map(
-                  (utxo) =>
+                  (utxo, utxoIndex) =>
                     html`<div class="utxo_list_row">
                       <div title=${utxo.wallet}>
+                        <input
+                          type="checkbox"
+                          checked=${!utxo.isIgnored}
+                          style="margin-right: 5px"
+                          title="Use this utxo for now"
+                          onClick=${() => {
+                            setUtxos(
+                              utxos.map((utxoChange, indexChange) =>
+                                indexChange !== utxoIndex
+                                  ? utxoChange
+                                  : {
+                                      ...utxo,
+                                      isIgnored: !utxo.isIgnored,
+                                    }
+                              )
+                            );
+                          }}
+                        />
+
                         ${utxo.wallet.slice(0, 6)}..${utxo.wallet.slice(-4)}
                       </div>
+
                       <div>
                         ${isDust(utxo)
                           ? html`<s title="dust">${utxo.value}</s>`

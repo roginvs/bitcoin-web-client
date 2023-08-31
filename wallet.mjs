@@ -111,7 +111,7 @@ export class BitcoinWallet {
           }));
         }
         utxos.forEach((utxo) =>
-          result.push({ ...utxo, keyIndex, wallet: address })
+          result.push({ ...utxo, keyIndex, wallet: address, isIgnored: false })
         );
       }
       return result;
@@ -125,7 +125,12 @@ export class BitcoinWallet {
           /** @type {import("./wallet.defs.js").Utxo[] }  */
           const utxos = await fetch(url).then((res) => res.json());
 
-          return utxos.map((utxo) => ({ ...utxo, keyIndex, wallet: address }));
+          return utxos.map((utxo) => ({
+            ...utxo,
+            keyIndex,
+            wallet: address,
+            isIgnored: false,
+          }));
         })
       )
     ).flat(1);
