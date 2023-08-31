@@ -313,7 +313,12 @@ export function WalletView({ wallet, onLogout }) {
     if (!utxos || !value || !fee) {
       return;
     }
-    const tx = wallet.createTx(utxos, dstAddr, value, fee);
+    const tx = wallet.createTx(
+      utxos.filter((utxo) => !isDust(utxo)).filter((utxo) => !utxo.isIgnored),
+      dstAddr,
+      value,
+      fee
+    );
     setReadyTxWithSum(tx);
   };
 
