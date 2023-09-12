@@ -257,7 +257,19 @@ export function WalletView({ wallet, onLogout }) {
       wallet
         .getUtxo()
         .then((utxos) => {
-          setUtxos(utxos);
+          setUtxos((oldUtxos) =>
+            utxos.map((utxo) => {
+              const isOldIgnored = oldUtxos?.find(
+                (old) => old.txid === utxo.txid && old.vout === utxo.vout
+              )?.isIgnored;
+              return isOldIgnored
+                ? {
+                    ...utxo,
+                    isIgnored: true,
+                  }
+                : utxo;
+            })
+          );
         })
         .catch((e) => alert(`${e.message}`)),
     [wallet]
@@ -288,10 +300,6 @@ export function WalletView({ wallet, onLogout }) {
     }
     setValueStr(satToBtcStr(value));
   };
-
-  useEffect(() => {
-    onMaxClick();
-  }, [balance]);
 
   const [dstAddr, setDstAddr] = useState(wallet.getAddress(0));
 
@@ -461,7 +469,6 @@ export function WalletView({ wallet, onLogout }) {
                 spendingSum=${readyTxWithSum[1]}
                 onClose=${() => {
                   setReadyTxWithSum(null);
-                  setUtxos(null);
                   loadUtxos();
                 }}
                 feeEstimates=${feeEstimates}
