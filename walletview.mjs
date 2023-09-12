@@ -435,7 +435,7 @@ export function WalletView({ wallet, onLogout }) {
                         ${utxo.status.block_time
                           ? new Date(
                               utxo.status.block_time * 1000
-                            ).toLocaleString()
+                            ).toLocaleString('en-GB')
                           : utxo.status.confirmations
                           ? `${utxo.status.confirmations} confs`
                           : utxo.status.confirmed
