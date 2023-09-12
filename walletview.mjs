@@ -10,7 +10,7 @@ import {
   useMemo,
   useState,
 } from "./thirdparty/hooks.mjs";
-import { BitcoinWallet, isDust } from "./wallet.mjs";
+import { BitcoinWallet } from "./wallet.mjs";
 
 /**
  * @param {number} sat
@@ -245,7 +245,7 @@ export function WalletView({ wallet, onLogout }) {
     () =>
       utxos
         ? utxos
-            .filter((utxo) => !isDust(utxo))
+            .filter((utxo) => !utxo.isDust)
             .filter((utxo) => !utxo.isIgnored)
             .reduce((acc, cur) => acc + cur.value, 0)
         : null,
@@ -313,12 +313,7 @@ export function WalletView({ wallet, onLogout }) {
     if (!utxos || !value || !fee) {
       return;
     }
-    const tx = wallet.createTx(
-      utxos.filter((utxo) => !isDust(utxo)).filter((utxo) => !utxo.isIgnored),
-      dstAddr,
-      value,
-      fee
-    );
+    const tx = wallet.createTx(utxos, dstAddr, value, fee);
     setReadyTxWithSum(tx);
   };
 
@@ -417,7 +412,7 @@ export function WalletView({ wallet, onLogout }) {
                       </div>
 
                       <div>
-                        ${isDust(utxo)
+                        ${utxo.isDust
                           ? html`<s title="dust">${utxo.value}</s>`
                           : utxo.value}
                         ${" "}sat

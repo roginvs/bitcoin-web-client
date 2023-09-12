@@ -16,6 +16,7 @@ export type UtxoWithMeta = Utxo & {
   keyIndex: number;
   wallet: string;
   isIgnored: boolean;
+  isDust: boolean;
 };
 
 export type BlockchainInfoUtxo = {

@@ -25,11 +25,10 @@ import { exportPrivateKeyWifP2WPKH } from "./bitcoin/utils/wif.mjs";
 
 const DUST_LIMIT = 1000;
 /**
- *
- * @param {import("./wallet.defs.js").Utxo} utxo
+ * @param {number} value
  */
-export function isDust(utxo) {
-  return utxo.value < DUST_LIMIT;
+function isDust(value) {
+  return value < DUST_LIMIT;
 }
 
 export class BitcoinWallet {
@@ -111,7 +110,7 @@ export class BitcoinWallet {
           }));
         }
         utxos.forEach((utxo) =>
-          result.push({ ...utxo, keyIndex, wallet: address, isIgnored: false })
+          result.push({ ...utxo, keyIndex, wallet: address, isIgnored: false, isDust: isDust(utxo.value)})
         );
       }
       return result;
@@ -130,6 +129,7 @@ export class BitcoinWallet {
             keyIndex,
             wallet: address,
             isIgnored: false,
+            isDust: isDust(utxo.value)
           }));
         })
       )
@@ -146,7 +146,8 @@ export class BitcoinWallet {
   createTx(utxos, dstAddr, amount, fee) {
     const possibleUtxos = utxos
       .slice()
-      .filter((utxo) => !isDust(utxo))
+      .filter((utxo) => !utxo.isDust)
+      .filter(utxo => !utxo.isIgnored)
       .sort((a, b) => a.value - b.value);
 
     const totalPossibleValue = possibleUtxos.reduce(
