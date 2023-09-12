@@ -110,7 +110,13 @@ export class BitcoinWallet {
           }));
         }
         utxos.forEach((utxo) =>
-          result.push({ ...utxo, keyIndex, wallet: address, isIgnored: false, isDust: isDust(utxo.value)})
+          result.push({
+            ...utxo,
+            keyIndex,
+            wallet: address,
+            isIgnored: false,
+            isDust: isDust(utxo.value),
+          })
         );
       }
       return result;
@@ -129,7 +135,7 @@ export class BitcoinWallet {
             keyIndex,
             wallet: address,
             isIgnored: false,
-            isDust: isDust(utxo.value)
+            isDust: isDust(utxo.value),
           }));
         })
       )
@@ -147,7 +153,7 @@ export class BitcoinWallet {
     const possibleUtxos = utxos
       .slice()
       .filter((utxo) => !utxo.isDust)
-      .filter(utxo => !utxo.isIgnored)
+      .filter((utxo) => !utxo.isIgnored)
       .sort((a, b) => a.value - b.value);
 
     const totalPossibleValue = possibleUtxos.reduce(
