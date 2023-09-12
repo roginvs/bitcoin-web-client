@@ -258,17 +258,23 @@ export function WalletView({ wallet, onLogout }) {
         .getUtxo()
         .then((utxos) => {
           setUtxos((oldUtxos) =>
-            utxos.map((utxo) => {
-              const isOldIgnored = oldUtxos?.find(
-                (old) => old.txid === utxo.txid && old.vout === utxo.vout
-              )?.isIgnored;
-              return isOldIgnored
-                ? {
-                    ...utxo,
-                    isIgnored: true,
-                  }
-                : utxo;
-            })
+            utxos
+              .sort(
+                (a, b) =>
+                  (a.status.confirmations || 0) -
+                    (b.status.confirmations || 0) || a.value - b.value
+              )
+              .map((utxo) => {
+                const isOldIgnored = oldUtxos?.find(
+                  (old) => old.txid === utxo.txid && old.vout === utxo.vout
+                )?.isIgnored;
+                return isOldIgnored
+                  ? {
+                      ...utxo,
+                      isIgnored: true,
+                    }
+                  : utxo;
+              })
           );
         })
         .catch((e) => alert(`${e.message}`)),
