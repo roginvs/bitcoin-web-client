@@ -425,22 +425,22 @@ export function WalletView({ wallet, onLogout }) {
                         ${utxo.wallet.slice(0, 6)}..${utxo.wallet.slice(-4)}
                       </div>
 
-                      <div>
+                      <div style="min-width: 6em; text-align: right">
                         ${utxo.isDust
                           ? html`<s title="dust">${utxo.value}</s>`
                           : utxo.value}
                         ${" "}sat
                       </div>
-                      <div>
+                      <div style="white-space: pre">
                         ${utxo.status.block_time
                           ? new Date(
                               utxo.status.block_time * 1000
-                            ).toLocaleString('en-GB')
+                            ).toLocaleString("en-GB")
                           : utxo.status.confirmations
                           ? `${utxo.status.confirmations} confs`
                           : utxo.status.confirmed
                           ? `confirmed`
-                          : "<not confirmed>"}${" "}
+                          : "  <not confirmed>   "}
                       </div>
                       <div>
                         <a
