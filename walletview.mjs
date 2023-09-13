@@ -427,14 +427,14 @@ export function WalletView({ wallet, onLogout }) {
                           : utxo.value}
                         ${" "}sat
                       </div>
-                      <div style="white-space: pre">
+                      <div style="min-width: 12em; text-align: center">
                         ${utxo.confirmedAt
                           ? utxo.confirmedAt.toLocaleString("en-GB")
                           : utxo.confirmations
-                          ? ` ${utxo.confirmations} height `
+                          ? `${utxo.confirmations} height`
                           : utxo.isConfirmed
-                          ? `     confirmed      `
-                          : "  <not confirmed>   "}
+                          ? `confirmed`
+                          : "<not confirmed>"}
                       </div>
                       <div>
                         <a
