@@ -114,7 +114,7 @@ export class BitcoinWallet {
             ...utxo,
             keyIndex,
             wallet: address,
-            isIgnored: false,
+            isIgnored: !utxo.status.confirmed,
             isDust: isDust(utxo.value),
           })
         );
