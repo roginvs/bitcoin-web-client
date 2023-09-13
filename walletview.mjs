@@ -238,7 +238,7 @@ function WalletTxSendView({
  */
 export function WalletView({ wallet, onLogout }) {
   const [utxos, setUtxos] = useState(
-    /** @type {null | import("./wallet.defs.js").UtxoWithMeta[]} */
+    /** @type {null | import("./wallet.defs.js").Utxo[]} */
     (null)
   );
   const balance = useMemo(
@@ -259,11 +259,7 @@ export function WalletView({ wallet, onLogout }) {
         .then((utxos) => {
           setUtxos((oldUtxos) =>
             utxos
-              .sort(
-                (a, b) =>
-                  (a.status.confirmations || 0) -
-                    (b.status.confirmations || 0) || a.value - b.value
-              )
+              .sort((a, b) => a.value - b.value)
               .map((utxo) => {
                 const isOldIgnored = oldUtxos?.find(
                   (old) => old.txid === utxo.txid && old.vout === utxo.vout
@@ -432,14 +428,12 @@ export function WalletView({ wallet, onLogout }) {
                         ${" "}sat
                       </div>
                       <div style="white-space: pre">
-                        ${utxo.status.block_time
-                          ? new Date(
-                              utxo.status.block_time * 1000
-                            ).toLocaleString("en-GB")
-                          : utxo.status.confirmations
-                          ? `${utxo.status.confirmations} confs`
-                          : utxo.status.confirmed
-                          ? `confirmed`
+                        ${utxo.confirmedAt
+                          ? utxo.confirmedAt.toLocaleString("en-GB")
+                          : utxo.confirmations
+                          ? ` ${utxo.confirmations} height `
+                          : utxo.isConfirmed
+                          ? `     confirmed      `
                           : "  <not confirmed>   "}
                       </div>
                       <div>

@@ -1,18 +1,26 @@
-export type UtxoStatus = {
+export type BlockstreamUtxoStatus = {
   confirmed: boolean;
   block_height?: number;
   block_hash?: string;
   block_time?: number;
   confirmations?: number;
 };
-export type Utxo = {
+export type BlockstreamUtxo = {
   txid: string;
   vout: number;
-  status: UtxoStatus;
+  status: BlockstreamUtxoStatus;
   value: number;
 };
 
-export type UtxoWithMeta = Utxo & {
+export type UtxoFromApi = {
+  txid: string;
+  vout: number;
+  value: number;
+  isConfirmed: boolean;
+  confirmedAt?: Date;
+  confirmations?: number;
+};
+export type Utxo = UtxoFromApi & {
   keyIndex: number;
   wallet: string;
   isIgnored: boolean;
