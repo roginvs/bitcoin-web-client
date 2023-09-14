@@ -48,13 +48,17 @@ export function LoginView({ onLogin }) {
     />
 
     <div style="display: flex; align-items: center; margin-bottom: 15px">
-      <input type="checkbox" id="remember_me_checkbox"></input>
+      <input type="checkbox" id="remember_me_checkbox" />
       <label for="remember_me_checkbox">Remember me</label>
-    </div>  
+    </div>
 
     <div style="display: flex; justify-content: space-between; width: 100%">
-      <button style="width: 200px" onClick=${onGenerate}>Generate random</button>
-      <button style="width: 200px" onClick=${onNext} disabled=${!wifs}>Next</button>
+      <button style="width: 200px" onClick=${onGenerate}>
+        Generate random
+      </button>
+      <button style="width: 200px" onClick=${onNext} disabled=${!wifs}>
+        Next
+      </button>
     </div>
   </div>`;
 }
