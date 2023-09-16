@@ -4,8 +4,13 @@ import { bufToHex } from "./bitcoin/utils/arraybuffer-hex.mjs";
 import { pkScriptToAddress } from "./bitcoin/utils/pkscript_to_address.mjs";
 import { html } from "./htm.mjs";
 import { Spinner } from "./spinner.mjs";
-import { useCallback, useEffect, useState } from "./thirdparty/hooks.mjs";
-import { BitcoinWallet, isDust } from "./wallet.mjs";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "./thirdparty/hooks.mjs";
+import { BitcoinWallet } from "./wallet.mjs";
 
 /**
  * @param {number} sat
@@ -233,21 +238,39 @@ function WalletTxSendView({
  */
 export function WalletView({ wallet, onLogout }) {
   const [utxos, setUtxos] = useState(
-    /** @type {null | import("./wallet.defs.js").UtxoWithMeta[]} */
+    /** @type {null | import("./wallet.defs.js").Utxo[]} */
     (null)
   );
-  const [balance, setBalance] = useState(/** @type {null | number} */ (null));
+  const balance = useMemo(
+    () =>
+      utxos
+        ? utxos
+            .filter((utxo) => !utxo.isDust)
+            .filter((utxo) => !utxo.isIgnored)
+            .reduce((acc, cur) => acc + cur.value, 0)
+        : null,
+    [utxos]
+  );
 
   const loadUtxos = useCallback(
     () =>
       wallet
         .getUtxo()
         .then((utxos) => {
-          setUtxos(utxos);
-          setBalance(
+          setUtxos((oldUtxos) =>
             utxos
-              .filter((utxo) => !isDust(utxo))
-              .reduce((acc, cur) => acc + cur.value, 0)
+              .sort((a, b) => a.value - b.value)
+              .map((utxo) => {
+                const isOldIgnored = oldUtxos?.find(
+                  (old) => old.txid === utxo.txid && old.vout === utxo.vout
+                )?.isIgnored;
+                return isOldIgnored
+                  ? {
+                      ...utxo,
+                      isIgnored: true,
+                    }
+                  : utxo;
+              })
           );
         })
         .catch((e) => alert(`${e.message}`)),
@@ -280,10 +303,6 @@ export function WalletView({ wallet, onLogout }) {
     setValueStr(satToBtcStr(value));
   };
 
-  useEffect(() => {
-    onMaxClick();
-  }, [balance]);
-
   const [dstAddr, setDstAddr] = useState(wallet.getAddress(0));
 
   const isSendAvailable =
@@ -311,19 +330,21 @@ export function WalletView({ wallet, onLogout }) {
   const [feeEstimates, setFeeEstimates] = useState(
     /** @type {FeeEstimates | null} */ null
   );
+
+  const isHaveUtxos = !!utxos;
   useEffect(() => {
-    if (!utxos) {
+    if (!isHaveUtxos) {
       // Fetch this after we got utxos
       return;
     }
     fetch("https://blockstream.info/api/fee-estimates")
       .then((res) => res.json())
       .then((estimates) => setFeeEstimates(estimates));
-  }, [utxos]);
+  }, [isHaveUtxos]);
 
   const [btcPrice, setBtcPrice] = useState(/** @type {number | null} */ null);
   useEffect(() => {
-    if (!utxos) {
+    if (!isHaveUtxos) {
       // Fetch this after we got utxos
       return;
     }
@@ -334,7 +355,7 @@ export function WalletView({ wallet, onLogout }) {
     })
       .then((res) => res.json())
       .then((prices) => setBtcPrice(prices.price_24h));
-  }, [utxos]);
+  }, [isHaveUtxos]);
 
   const euroPrice = (/** @type {number | null} */ sat) => {
     return sat && btcPrice
@@ -375,27 +396,45 @@ export function WalletView({ wallet, onLogout }) {
           ${viewUtxos
             ? html`<div class="utxo_list">
                 ${utxos.map(
-                  (utxo) =>
+                  (utxo, utxoIndex) =>
                     html`<div class="utxo_list_row">
                       <div title=${utxo.wallet}>
+                        <input
+                          type="checkbox"
+                          checked=${!utxo.isIgnored}
+                          style="margin-right: 5px"
+                          title="Use this utxo for now"
+                          onClick=${() => {
+                            setUtxos(
+                              utxos.map((utxoChange, indexChange) =>
+                                indexChange !== utxoIndex
+                                  ? utxoChange
+                                  : {
+                                      ...utxo,
+                                      isIgnored: !utxo.isIgnored,
+                                    }
+                              )
+                            );
+                          }}
+                        />
+
                         ${utxo.wallet.slice(0, 6)}..${utxo.wallet.slice(-4)}
                       </div>
-                      <div>
-                        ${isDust(utxo)
+
+                      <div style="min-width: 6em; text-align: right">
+                        ${utxo.isDust
                           ? html`<s title="dust">${utxo.value}</s>`
                           : utxo.value}
                         ${" "}sat
                       </div>
-                      <div>
-                        ${utxo.status.block_time
-                          ? new Date(
-                              utxo.status.block_time * 1000
-                            ).toLocaleString()
-                          : utxo.status.confirmations
-                          ? `${utxo.status.confirmations} confs`
-                          : utxo.status.confirmed
+                      <div style="min-width: 12em; text-align: center">
+                        ${utxo.confirmedAt
+                          ? utxo.confirmedAt.toLocaleString("en-GB")
+                          : utxo.confirmations
+                          ? `${utxo.confirmations} height`
+                          : utxo.isConfirmed
                           ? `confirmed`
-                          : "<not confirmed>"}${" "}
+                          : "<not confirmed>"}
                       </div>
                       <div>
                         <a
@@ -430,7 +469,6 @@ export function WalletView({ wallet, onLogout }) {
                 spendingSum=${readyTxWithSum[1]}
                 onClose=${() => {
                   setReadyTxWithSum(null);
-                  setUtxos(null);
                   loadUtxos();
                 }}
                 feeEstimates=${feeEstimates}

@@ -25,11 +25,60 @@ import { exportPrivateKeyWifP2WPKH } from "./bitcoin/utils/wif.mjs";
 
 const DUST_LIMIT = 1000;
 /**
- *
- * @param {import("./wallet.defs.js").Utxo} utxo
+ * @param {number} value
  */
-export function isDust(utxo) {
-  return utxo.value < DUST_LIMIT;
+function isDust(value) {
+  return value < DUST_LIMIT;
+}
+
+/**
+ * @param {string} address
+ * @returns {Promise<import("./wallet.defs.js").UtxoFromApi[] | undefined>}
+ */
+async function getUtxoFromBlockstreamInfo(address) {
+  const url = `https://blockstream.info/api/address/${address}/utxo`;
+  /** @type {import("./wallet.defs.js").BlockstreamUtxo[] | null}  */
+  const apiResult = await fetch(url)
+    .then((res) => res.json())
+    .catch((e) => {
+      console.warn(`Failed to fetch ${url}`);
+      console.warn(e);
+      return undefined;
+    });
+  return apiResult?.map((utxo) => ({
+    txid: utxo.txid,
+    vout: utxo.vout,
+    value: utxo.value,
+    isConfirmed: utxo.status.confirmed,
+    confirmedAt: utxo.status.block_time
+      ? new Date(utxo.status.block_time)
+      : undefined,
+    confirmations: undefined,
+  }));
+}
+
+/**
+ * @param {string} address
+ * @returns {Promise<import("./wallet.defs.js").UtxoFromApi[] | undefined>}
+ */
+async function getUtxoFromBlockhainInfo(address) {
+  const url = `https://blockchain.info/unspent?active=${address}`;
+  /** @type {import("./wallet.defs.js").BlockchainInfoResult | null}  */
+  const apiResult = await fetch(url)
+    .then((res) => res.json())
+    .catch((e) => {
+      console.warn(`Failed to fetch ${url}`);
+      console.warn(e);
+      return undefined;
+    });
+  return apiResult?.unspent_outputs.map((utxo) => ({
+    txid: utxo.tx_hash_big_endian,
+    vout: utxo.tx_output_n,
+    value: utxo.value,
+    isConfirmed: !!utxo.confirmations,
+    confirmedAt: undefined,
+    confirmations: utxo.confirmations || undefined,
+  }));
 }
 
 export class BitcoinWallet {
@@ -77,41 +126,31 @@ export class BitcoinWallet {
   }
 
   /**
-   * @returns {Promise<import("./wallet.defs.js").UtxoWithMeta[]>}
+   * @returns {Promise<import("./wallet.defs.js").Utxo[]>}
    */
   async getUtxo() {
     const FETCH_ONE_BY_ONE = true;
     if (FETCH_ONE_BY_ONE) {
-      /** @type {import("./wallet.defs.js").UtxoWithMeta[]} */
+      /** @type {import("./wallet.defs.js").Utxo[]} */
       const result = [];
       for (const keyIndex of this.#getPrivKeysIndexes()) {
         const address = this.getAddress(keyIndex);
-        const url1 = `https://blockstream.info/api/address/${address}/utxo`;
-        /** @type {import("./wallet.defs.js").Utxo[] | null}  */
-        let utxos = null;
-        utxos = await fetch(url1)
-          .then((res) => res.json())
-          .catch((e) => {
-            console.warn(`Failed to fetch ${url1}`);
-            console.warn(e);
-            return null;
-          });
-        if (!utxos) {
-          const url2 = `https://blockchain.info/unspent?active=${address}`;
-          /** @type {import("./wallet.defs.js").BlockchainInfoResult}  */
-          const result = await fetch(url2).then((res) => res.json());
-          utxos = result.unspent_outputs.map((utxo) => ({
-            txid: utxo.tx_hash_big_endian,
-            vout: utxo.tx_output_n,
-            status: {
-              confirmed: !!utxo.confirmations,
-              confirmations: utxo.confirmations,
-            },
-            value: utxo.value,
-          }));
+
+        const utxoApi =
+          (await getUtxoFromBlockstreamInfo(address)) ||
+          (await getUtxoFromBlockhainInfo(address));
+        if (!utxoApi) {
+          throw new Error(`All api endpoints failed`);
         }
-        utxos.forEach((utxo) =>
-          result.push({ ...utxo, keyIndex, wallet: address })
+
+        utxoApi.forEach((utxo) =>
+          result.push({
+            ...utxo,
+            keyIndex,
+            wallet: address,
+            isIgnored: !utxo.isConfirmed,
+            isDust: isDust(utxo.value),
+          })
         );
       }
       return result;
@@ -121,11 +160,19 @@ export class BitcoinWallet {
       await Promise.all(
         this.#getPrivKeysIndexes().map(async (keyIndex) => {
           const address = this.getAddress(keyIndex);
-          const url = `https://blockstream.info/api/address/${address}/utxo`;
-          /** @type {import("./wallet.defs.js").Utxo[] }  */
-          const utxos = await fetch(url).then((res) => res.json());
-
-          return utxos.map((utxo) => ({ ...utxo, keyIndex, wallet: address }));
+          const utxoApi =
+            (await getUtxoFromBlockstreamInfo(address)) ||
+            (await getUtxoFromBlockhainInfo(address));
+          if (!utxoApi) {
+            throw new Error(`All api endpoints failed`);
+          }
+          return utxoApi.map((utxo) => ({
+            ...utxo,
+            keyIndex,
+            wallet: address,
+            isIgnored: !utxo.isConfirmed,
+            isDust: isDust(utxo.value),
+          }));
         })
       )
     ).flat(1);
@@ -133,7 +180,7 @@ export class BitcoinWallet {
 
   /**
    *
-   * @param {import("./wallet.defs.js").UtxoWithMeta[]} utxos
+   * @param {import("./wallet.defs.js").Utxo[]} utxos
    * @param {string} dstAddr
    * @param {number} amount
    * @param {number} fee
@@ -141,7 +188,8 @@ export class BitcoinWallet {
   createTx(utxos, dstAddr, amount, fee) {
     const possibleUtxos = utxos
       .slice()
-      .filter((utxo) => !isDust(utxo))
+      .filter((utxo) => !utxo.isDust)
+      .filter((utxo) => !utxo.isIgnored)
       .sort((a, b) => a.value - b.value);
 
     const totalPossibleValue = possibleUtxos.reduce(
