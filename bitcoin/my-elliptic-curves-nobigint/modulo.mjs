@@ -170,7 +170,7 @@ function get_bit_at(n, bitPos) {
  * @param {MyBigNumber} module
  * @returns {MyBigNumber}
  */
-export function modulo_mul(a, b, module) {
+export function module_mul(a, b, module) {
   const bitsTotal = b.length * 32;
   let base = a;
   let result = new Array(module.length).fill(0);
@@ -203,7 +203,7 @@ export function to_big_num(len, value) {
  * @param {MyBigNumber} module
  * @returns {MyBigNumber}
  */
-export function modulo_power(a, b, module) {
+export function module_power(a, b, module) {
   const bitsTotal = b.length * 32;
   let base = a;
 
@@ -212,9 +212,9 @@ export function modulo_power(a, b, module) {
   for (let bitIndex = 0; bitIndex < bitsTotal; bitIndex++) {
     const bit = get_bit_at(b, bitIndex);
     if (bit) {
-      result = modulo_mul(result, base, module);
+      result = module_mul(result, base, module);
     }
-    base = modulo_mul(base, base, module);
+    base = module_mul(base, base, module);
   }
   return result;
 }
@@ -330,10 +330,10 @@ describe(`getBitAt`, () => {
 describe("modulo_mul", () => {
   const module = [0xffffffff, 0xffffffc5];
 
-  eq(modulo_mul([0xaabbccdd, 0xeeff3311], [0, 0], module), [0, 0], "zero");
+  eq(module_mul([0xaabbccdd, 0xeeff3311], [0, 0], module), [0, 0], "zero");
 
   eq(
-    modulo_mul([0xaabbccdd, 0xeeff3311], [0, 1], module),
+    module_mul([0xaabbccdd, 0xeeff3311], [0, 1], module),
     [0xaabbccdd, 0xeeff3311],
     "one"
   );
@@ -343,7 +343,7 @@ describe("modulo_mul", () => {
      BigInt('0xffffffffffffffc5')).toString(16)
   */
   eq(
-    modulo_mul([0xaabbccdd, 0xeeff3311], [0x66223311, 0x11884411], module),
+    module_mul([0xaabbccdd, 0xeeff3311], [0x66223311, 0x11884411], module),
     [0xc2deba4a, 0x6c8ccdca],
     "many"
   );
@@ -352,10 +352,10 @@ describe("modulo_mul", () => {
 describe("modulo_power", () => {
   const module = [0xffffffff, 0xffffffc5];
 
-  eq(modulo_power([0xaabbccdd, 0xeeff3311], [0, 0], module), [0, 1], "zero");
+  eq(module_power([0xaabbccdd, 0xeeff3311], [0, 0], module), [0, 1], "zero");
 
   eq(
-    modulo_power([0xaabbccdd, 0xeeff3311], [0, 1], module),
+    module_power([0xaabbccdd, 0xeeff3311], [0, 1], module),
     [0xaabbccdd, 0xeeff3311],
     "one"
   );
@@ -365,7 +365,7 @@ describe("modulo_power", () => {
        BigInt('0xffffffffffffffc5')).toString(16)
     */
   eq(
-    modulo_power([0xaabbccdd, 0xeeff3311], [0x66223311, 0x11884411], module),
+    module_power([0xaabbccdd, 0xeeff3311], [0x66223311, 0x11884411], module),
     [0x32fe333c, 0x98df7120],
     "many"
   );
@@ -383,7 +383,7 @@ export function square_root(a, module) {
     throw new Error(`Module+1 is not divideable by 4`);
   }
   power = shift(power, 2);
-  const result = modulo_power(a, power, module);
+  const result = module_power(a, power, module);
   return result;
 }
 
@@ -392,7 +392,7 @@ describe("square_root", () => {
   const num = [0x00abccdd, 0x44331169];
   const root = square_root(num, module);
 
-  const numAgain = modulo_mul(root, root, module);
+  const numAgain = module_mul(root, root, module);
   eq(num, numAgain);
 });
 
@@ -403,14 +403,14 @@ describe("square_root", () => {
  */
 export function inverse(n, module) {
   const m = number_sub(module, to_big_num(module.length, 2));
-  return modulo_power(n, m, module);
+  return module_power(n, m, module);
 }
 
 describe(`inverse`, () => {
   const module = [0x805e692e, 0xeebc4f6f];
   const num = [0x00abccdd, 0x44331169];
   const inv = inverse(num, module);
-  eq(modulo_mul(num, inv, module), to_big_num(module.length, 1));
+  eq(module_mul(num, inv, module), to_big_num(module.length, 1));
 });
 
 /**

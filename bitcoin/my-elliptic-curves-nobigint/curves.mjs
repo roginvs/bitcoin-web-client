@@ -9,10 +9,11 @@ import { Secp256k1 } from "./curves.named.mjs";
 import {
   module_add,
   inverse,
-  modulo_mul,
-  modulo_power,
+  module_mul,
+  module_power,
   square_root,
   to_big_num,
+  module_sub,
 } from "./modulo.mjs";
 
 /**
@@ -26,8 +27,8 @@ import {
 export function get_point_from_x(x, a, b, module) {
   const ySquare = module_add(
     module_add(
-      modulo_power(x, to_big_num(x.length, 3), module),
-      modulo_mul(a, x, module),
+      module_power(x, to_big_num(x.length, 3), module),
+      module_mul(a, x, module),
       module
     ),
     b,
@@ -62,22 +63,44 @@ export function point_double(p, a, module) {
   }
 
   const lambda_top = module_add(
-    modulo_mul(modulo_mul(to_big_num(xp.length, 3), xp, module), xp, module),
+    module_mul(module_mul(to_big_num(xp.length, 3), xp, module), xp, module),
     a,
     module
   );
-  const lambda_bottom = modulo_mul(to_big_num(xp.length, 2), yp, module);
+  const lambda_bottom = module_mul(to_big_num(xp.length, 2), yp, module);
 
-  const lambda = modulo_mul(lambda_top, inverse(lambda_bottom, module), module);
+  const lambda = module_mul(lambda_top, inverse(lambda_bottom, module), module);
 
-  //const lambda =
-  //  ((((BigInt(3) * xp * xp) % module) + a) *
-  //    modulo_inverse((BigInt(2) * yp) % module, module)) %
-  //  module;
-  //
-  //const xr =
-  //  (((lambda * lambda) % module) + module - xp + module - xp) % module;
-  //const yr = (((lambda * (xp + module - xr)) % module) + module - yp) % module;
-  //
-  //return [xr, yr];
+  const xr = module_sub(
+    module_sub(module_mul(lambda, lambda, module), xp, module),
+    xp,
+    module
+  );
+
+  const yr = module_sub(
+    module_mul(lambda, module_sub(xp, xr, module), module),
+    yp,
+    module
+  );
+  return [xr, yr];
 }
+
+describe(`point_double`, () => {
+  const GG = point_double(Secp256k1.G, Secp256k1.a, Secp256k1.p);
+  if (GG === null) {
+    throw new Error(`Got null`);
+  }
+  eq(
+    GG[0],
+    "c6047f94 41ed7d6d 3045406e 95c07cd8 5c778e4b 8cef3ca7 abac09b9 5c709ee5"
+      .split(" ")
+      .map((x) => parseInt(x, 16))
+  );
+
+  eq(
+    GG[1],
+    "1ae168fe a63dc339 a3c58419 466ceaee f7f63265 3266d0e1 236431a9 50cfe52a"
+      .split(" ")
+      .map((x) => parseInt(x, 16))
+  );
+});
