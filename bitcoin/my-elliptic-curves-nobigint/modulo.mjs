@@ -124,7 +124,7 @@ function cmp_numbers(a, b) {
  * @param {MyBigNumber} module
  * @returns {MyBigNumber}
  */
-export function modulo_add(a, b, module) {
+export function module_add(a, b, module) {
   if (a.length !== b.length || a.length !== module.length) {
     throw new Error(
       `Wrong amount of digits ${a.length} ${b.length} ${module.length}`
@@ -177,9 +177,9 @@ export function modulo_mul(a, b, module) {
   for (let bitIndex = 0; bitIndex < bitsTotal; bitIndex++) {
     const bit = get_bit_at(b, bitIndex);
     if (bit) {
-      result = modulo_add(result, base, module);
+      result = module_add(result, base, module);
     }
-    base = modulo_add(base, base, module);
+    base = module_add(base, base, module);
   }
   return result;
 }
@@ -301,7 +301,7 @@ describe("modulo_add", () => {
       BigInt('0xaaaaccddeeff1122004422aa')
     */
   eq(
-    modulo_add(
+    module_add(
       [0xaabbccdd, 0xeeff1122, 0x004422aa],
       [0xffeeccdd, 0x22441199, 0xbbcceeaa],
       [0xffffccdd, 0x22441199, 0xbbcceeaa]
@@ -411,4 +411,53 @@ describe(`inverse`, () => {
   const num = [0x00abccdd, 0x44331169];
   const inv = inverse(num, module);
   eq(modulo_mul(num, inv, module), to_big_num(module.length, 1));
+});
+
+/**
+ *
+ * @param {MyBigNumber} a
+ * @param {MyBigNumber} b
+ * @param {MyBigNumber} module
+ */
+export function module_sub(a, b, module) {
+  const cmp = cmp_numbers(a, b);
+  if (cmp === 0) {
+    return to_big_num(a.length, 0);
+  }
+  if (cmp === 1) {
+    return number_sub(a, b);
+  }
+  const afterModuleReduce = number_sub(number_add(a, module), b);
+  if (afterModuleReduce.length === module.length) {
+    return afterModuleReduce;
+  } else if (afterModuleReduce.length === module.length + 1) {
+    if (afterModuleReduce[0] !== 0) {
+      throw new Error("Unexpected non-zero value");
+    }
+    return afterModuleReduce.slice(1);
+  } else {
+    throw new Error(`Unexpected length`);
+  }
+}
+
+describe("module_sub", () => {
+  {
+    const module = [0x805e692e, 0xeebc4f6f];
+    const num = [0x00abccdd, 0x44331169];
+
+    eq(module_sub(num, num, module), to_big_num(module.length, 0));
+  }
+  {
+    // a + b == c
+    // a == c - b
+    // b == c - a
+    const a = [0xaabbccdd, 0xeeff1122, 0x004422aa];
+    const b = [0xffeeccdd, 0x22441199, 0xbbcceeaa];
+    const c = [0xaaaaccdd, 0xeeff1122, 0x004422aa];
+    const module = [0xffffccdd, 0x22441199, 0xbbcceeaa];
+
+    eq(module_add(a, b, module), c, "Once again verify that a+b == c");
+    eq(module_sub(c, b, module), a);
+    eq(module_sub(c, a, module), b);
+  }
 });

@@ -7,7 +7,7 @@
 import { describe, eq } from "../tests.mjs";
 import { Secp256k1 } from "./curves.named.mjs";
 import {
-  modulo_add,
+  module_add,
   inverse,
   modulo_mul,
   modulo_power,
@@ -24,8 +24,8 @@ import {
  * @returns {NonZeroPoint}
  */
 export function get_point_from_x(x, a, b, module) {
-  const ySquare = modulo_add(
-    modulo_add(
+  const ySquare = module_add(
+    module_add(
       modulo_power(x, to_big_num(x.length, 3), module),
       modulo_mul(a, x, module),
       module
@@ -61,7 +61,7 @@ export function point_double(p, a, module) {
     return null;
   }
 
-  const lambda_top = modulo_add(
+  const lambda_top = module_add(
     modulo_mul(modulo_mul(to_big_num(xp.length, 3), xp, module), xp, module),
     a,
     module
