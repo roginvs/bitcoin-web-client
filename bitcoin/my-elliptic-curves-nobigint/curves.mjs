@@ -15,6 +15,7 @@ import {
   to_big_num,
   module_sub,
   cmp_numbers,
+  get_bit_at,
 } from "./modulo.mjs";
 
 /**
@@ -169,6 +170,56 @@ describe("point_add", () => {
   eq(
     GGG[1],
     "388f7b0f 632de814 0fe337e6 2a37f356 6500a999 34c2231b 6cb9fd75 84b8e672"
+      .split(" ")
+      .map((x) => parseInt(x, 16))
+  );
+});
+
+/**
+ *
+ * @param {Point} base
+ * @param {MyBigNumber} power
+ * @param {MyBigNumber} a
+ * @param {MyBigNumber} module
+ * @returns {Point}
+ */
+export function modulo_power_point(base, power, a, module) {
+  const bitsTotal = power.length * 32;
+
+  /** @type {Point} */
+  let result = null;
+
+  for (let bitIndex = 0; bitIndex < bitsTotal; bitIndex++) {
+    const bit = get_bit_at(power, bitIndex);
+    if (bit) {
+      result = point_add(result, base, a, module);
+    }
+    base = point_add(base, base, a, module);
+  }
+  return result;
+}
+
+describe("modulo_power_point", () => {
+  const Gmany = modulo_power_point(
+    Secp256k1.G,
+    [0xaabbccdd, 0x55443342],
+    Secp256k1.a,
+    Secp256k1.p
+  );
+
+  if (Gmany === null) {
+    throw new Error(`Got null`);
+  }
+  eq(
+    Gmany[0],
+    "f2977416 084f7397 4dd4014d c5a22b86 aa644ca4 0df8d19a c7f26038 00fbf6f2"
+      .split(" ")
+      .map((x) => parseInt(x, 16))
+  );
+
+  eq(
+    Gmany[1],
+    "18eb066c 14352fcc 98542824 6587083b 736c49df f04f755f 0413eaf4 c582b89f"
       .split(" ")
       .map((x) => parseInt(x, 16))
   );

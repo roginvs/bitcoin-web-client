@@ -152,7 +152,7 @@ export function module_add(a, b, module) {
  * @param {MyBigNumber} n
  * @param {number} bitPos
  */
-function get_bit_at(n, bitPos) {
+export function get_bit_at(n, bitPos) {
   const numberPos = bitPos >>> 5;
   const bitInNumber = bitPos % 32;
   const numberIndex = n.length - 1 - numberPos;
