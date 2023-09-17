@@ -124,7 +124,7 @@ function cmp_numbers(a, b) {
  * @param {MyBigNumber} module
  * @returns {MyBigNumber}
  */
-function modulo_add(a, b, module) {
+export function modulo_add(a, b, module) {
   if (a.length !== b.length || a.length !== module.length) {
     throw new Error(
       `Wrong amount of digits ${a.length} ${b.length} ${module.length}`
@@ -170,7 +170,7 @@ function get_bit_at(n, bitPos) {
  * @param {MyBigNumber} module
  * @returns {MyBigNumber}
  */
-function modulo_mul(a, b, module) {
+export function modulo_mul(a, b, module) {
   const bitsTotal = b.length * 32;
   let base = a;
   let result = new Array(module.length).fill(0);
@@ -190,7 +190,7 @@ function modulo_mul(a, b, module) {
  * @param {number} value
  * @returns {MyBigNumber}
  */
-function to_big_num(len, value) {
+export function to_big_num(len, value) {
   let result = new Array(len).fill(0);
   result[result.length - 1] = value;
   return result;
