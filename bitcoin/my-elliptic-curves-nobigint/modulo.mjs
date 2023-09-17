@@ -101,7 +101,7 @@ function number_sub(a, b) {
  * @param {MyBigNumber} a
  * @param {MyBigNumber} b
  */
-function cmp_numbers(a, b) {
+export function cmp_numbers(a, b) {
   const maxlen = Math.max(a.length, b.length);
   for (let i = 0; i < maxlen; i++) {
     const digitAindex = i - (maxlen - a.length);

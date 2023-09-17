@@ -14,6 +14,7 @@ import {
   square_root,
   to_big_num,
   module_sub,
+  cmp_numbers,
 } from "./modulo.mjs";
 
 /**
@@ -85,6 +86,53 @@ export function point_double(p, a, module) {
   return [xr, yr];
 }
 
+/**
+ *
+ * @param {Point} p
+ * @param {Point} q
+ * @param {MyBigNumber} a
+ * @param {MyBigNumber} module
+ * @returns {Point}
+ */
+export function point_add(p, q, a, module) {
+  if (p === null) {
+    return q;
+  }
+  if (q === null) {
+    return p;
+  }
+  const [xp, yp] = p;
+  const [xq, yq] = q;
+
+  if (cmp_numbers(xp, xq) === 0) {
+    if (cmp_numbers(yp, yq) === 0) {
+      return point_double(p, a, module);
+    } else {
+      return null;
+    }
+  }
+
+  const lambda = module_mul(
+    module_sub(yq, yp, module),
+    inverse(module_sub(xq, xp, module), module),
+    module
+  );
+
+  const xr = module_sub(
+    module_sub(module_mul(lambda, lambda, module), xp, module),
+    xq,
+    module
+  );
+
+  const yr = module_sub(
+    module_mul(lambda, module_sub(xp, xr, module), module),
+    yp,
+    module
+  );
+
+  return [xr, yr];
+}
+
 describe(`point_double`, () => {
   const GG = point_double(Secp256k1.G, Secp256k1.a, Secp256k1.p);
   if (GG === null) {
@@ -100,6 +148,27 @@ describe(`point_double`, () => {
   eq(
     GG[1],
     "1ae168fe a63dc339 a3c58419 466ceaee f7f63265 3266d0e1 236431a9 50cfe52a"
+      .split(" ")
+      .map((x) => parseInt(x, 16))
+  );
+});
+
+describe("point_add", () => {
+  const GG = point_double(Secp256k1.G, Secp256k1.a, Secp256k1.p);
+  const GGG = point_add(Secp256k1.G, GG, Secp256k1.a, Secp256k1.p);
+  if (GGG === null) {
+    throw new Error(`Got null`);
+  }
+  eq(
+    GGG[0],
+    "f9308a01 9258c310 49344f85 f89d5229 b531c845 836f99b0 8601f113 bce036f9"
+      .split(" ")
+      .map((x) => parseInt(x, 16))
+  );
+
+  eq(
+    GGG[1],
+    "388f7b0f 632de814 0fe337e6 2a37f356 6500a999 34c2231b 6cb9fd75 84b8e672"
       .split(" ")
       .map((x) => parseInt(x, 16))
   );
