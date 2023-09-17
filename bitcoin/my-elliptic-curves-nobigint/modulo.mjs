@@ -72,7 +72,7 @@ function remove_leading_zeros(n) {
  * @param {MyBigNumber} b
  * @returns {MyBigNumber}
  */
-function number_sub(a, b) {
+export function number_sub(a, b) {
   const maxlen = Math.max(a.length, b.length);
 
   let overflow = 0;

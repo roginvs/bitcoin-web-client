@@ -9,3 +9,8 @@ export interface CurveParams {
   G: NonZeroPoint;
   n: MyBigNumber;
 }
+
+export interface Signature {
+  r: MyBigNumber;
+  s: MyBigNumber;
+}
