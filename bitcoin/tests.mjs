@@ -41,8 +41,12 @@ export function describe(msg, cb) {
     return;
   }
   console.log(`=== ${msg} ===`);
+  const started = new Date();
   try {
     cb();
+    const diff = new Date().getTime() - started.getTime();
+
+    console.info(`Done: ${msg} in ${diff}ms`);
   } catch (/** @type {any} */ e) {
     console.log(`%cFAIL ${msg} ${e.name} ${e.message}`, "color: red;");
     console.log(e.stack);
