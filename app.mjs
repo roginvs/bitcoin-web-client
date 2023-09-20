@@ -1,4 +1,4 @@
-import { arrayToBigint } from "./bitcoin/utils/arraybuffer-bigint.mjs";
+import { ECPrivateKeyBigints } from "./bitcoin/myCrypto.mjs";
 import { bufToHex, parseHexToBuf } from "./bitcoin/utils/arraybuffer-hex.mjs";
 import { html } from "./htm.mjs";
 import { LoginView } from "./loginview.mjs";
@@ -19,8 +19,10 @@ export function App(props) {
     }
     const privKeys = privateKeysHex
       .split(" ")
-      .map((keyHex) => arrayToBigint(parseHexToBuf(keyHex)));
-    return new BitcoinWallet(privKeys);
+      .map((keyHex) => parseHexToBuf(keyHex));
+    return new BitcoinWallet(
+      privKeys.map((privKey) => new ECPrivateKeyBigints(privKey))
+    );
   });
 
   const onLogout = () => {
@@ -38,7 +40,9 @@ export function App(props) {
         keys.map((key) => bufToHex(key)).join(" ")
       );
     }
-    setWallet(new BitcoinWallet(keys.map((key) => arrayToBigint(key))));
+    setWallet(
+      new BitcoinWallet(keys.map((key) => new ECPrivateKeyBigints(key)))
+    );
   };
 
   if (!wallet) {

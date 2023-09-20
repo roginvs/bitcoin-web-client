@@ -14,10 +14,7 @@ import {
   p2wpkhProgramForOpChecksig,
 } from "./bitcoin/script/op_checksig_sigvalue_witness.mjs";
 import { addressToPkScript } from "./bitcoin/utils/address_to_pkscript.mjs";
-import {
-  arrayToBigint,
-  bigintToArray,
-} from "./bitcoin/utils/arraybuffer-bigint.mjs";
+import { arrayToBigint } from "./bitcoin/utils/arraybuffer-bigint.mjs";
 import { bufToHex, parseHexToBuf } from "./bitcoin/utils/arraybuffer-hex.mjs";
 import { bitcoin_address_P2WPKH_from_public_key } from "./bitcoin/utils/bech32/address.mjs";
 import { joinBuffers } from "./bitcoin/utils/joinBuffers.mjs";
@@ -84,46 +81,16 @@ async function getUtxoFromBlockhainInfo(address) {
 export class BitcoinWallet {
   /**
    *
-   * @param {(Uint8Array | bigint)[]} privKeys
+   * @param {(import("./bitcoin/ecKey.js").ECPrivateKey)[]} privKeys
    */
   constructor(privKeys) {
-    this.#privkeys = privKeys.map((privKey) =>
-      typeof privKey === "bigint" ? privKey : arrayToBigint(privKey)
-    );
+    this.#privkeys = privKeys;
     if (this.#privkeys.length === 0) {
       throw new Error(`No private keys provided!`);
     }
   }
-  /** @type {bigint[]} */
+  /** @type {import("./bitcoin/ecKey.js").ECPrivateKey[]} */
   #privkeys;
-
-  /**
-   * @param {number} keyIndex
-   */
-  #getPublicPoint(keyIndex) {
-    const publicKeyPoint = modulo_power_point(
-      Secp256k1.G,
-      this.#privkeys[keyIndex],
-      Secp256k1.a,
-      Secp256k1.p
-    );
-    if (!publicKeyPoint) {
-      throw new Error(`Got zero as pub key!`);
-    }
-    return publicKeyPoint;
-  }
-
-  /**
-   * @param {number} keyIndex
-   */
-  #getCompressedPubkey(keyIndex) {
-    const point = this.#getPublicPoint(keyIndex);
-    const buf = bigintToArray(point[0]);
-    const out = new Uint8Array(new ArrayBuffer(buf.byteLength + 1));
-    out.set(new Uint8Array(buf), 1);
-    out[0] = point[1] % 2n == 0n ? 2 : 3;
-    return out.buffer;
-  }
 
   /**
    * @returns {Promise<import("./wallet.defs.js").Utxo[]>}
@@ -216,8 +183,8 @@ export class BitcoinWallet {
 
     const changePkScript = addressToPkScript(this.getAddress(0));
 
-    const myPublicKeys = this.#getPrivKeysIndexes().map((index) =>
-      this.#getCompressedPubkey(index)
+    const myPublicKeys = this.#privkeys.map(
+      (privKey) => privKey.compressedPubkey.buffer
     );
 
     const changeValue =
@@ -292,40 +259,7 @@ export class BitcoinWallet {
         0x01
       );
 
-      const signingInt = arrayToBigint(sha256(dataToSig));
-
-      const kBuf = new Uint8Array(32);
-      crypto.getRandomValues(kBuf);
-
-      const k = arrayToBigint(kBuf);
-      if (k >= Secp256k1.n || k <= BigInt(1)) {
-        throw new Error(`Not this time LOL`);
-      }
-      const sig = signature({
-        curve: Secp256k1,
-        k,
-        msgHash: signingInt,
-        privateKey: this.#privkeys[utxo.keyIndex],
-      });
-
-      if (
-        !check_signature({
-          curve: Secp256k1,
-          msgHash: signingInt,
-          publicKey: this.#getPublicPoint(utxo.keyIndex),
-          r: sig.r,
-          s: sig.s,
-        })
-      ) {
-        throw new Error("Something wrong with signatures");
-      }
-
-      const s = sig.s > Secp256k1.n / BigInt(2) ? Secp256k1.n - sig.s : sig.s;
-
-      const sigDer = packAsn1PairOfIntegers(
-        bigintToArray(sig.r),
-        bigintToArray(s)
-      );
+      const sigDer = this.#privkeys[utxo.keyIndex].sign(dataToSig);
 
       const signatureWithHashType = joinBuffers(sigDer, new Uint8Array([0x01]));
 
@@ -374,7 +308,7 @@ export class BitcoinWallet {
    * @param {number} keyIndex
    */
   getAddress(keyIndex) {
-    const pubKey = this.#getCompressedPubkey(keyIndex);
+    const pubKey = this.#privkeys[keyIndex].compressedPubkey;
     const address = bitcoin_address_P2WPKH_from_public_key(pubKey);
     if (!address) {
       throw new Error(`Something wrong with address`);
@@ -390,10 +324,7 @@ export class BitcoinWallet {
    * @param {number} keyIndex
    */
   exportPrivateKey(keyIndex) {
-    return exportPrivateKeyWifP2WPKH(
-      bigintToArray(this.#privkeys[keyIndex]),
-      true
-    );
+    return exportPrivateKeyWifP2WPKH(this.#privkeys[keyIndex].privateKey, true);
   }
 
   exportPrivateKeys() {
