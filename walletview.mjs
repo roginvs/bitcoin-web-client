@@ -259,7 +259,12 @@ export function WalletView({ wallet, onLogout }) {
         .then((utxos) => {
           setUtxos((oldUtxos) =>
             utxos
-              .sort((a, b) => a.value - b.value)
+              .sort(
+                (a, b) =>
+                  (a.confirmedAt?.getTime() || 0) -
+                    (b.confirmedAt?.getTime() || 0) ||
+                  (a.confirmations || 0) - (b.confirmations || 0)
+              )
               .map((utxo) => {
                 const isOldIgnored = oldUtxos?.find(
                   (old) => old.txid === utxo.txid && old.vout === utxo.vout
