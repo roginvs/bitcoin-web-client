@@ -48,7 +48,7 @@ async function getUtxoFromBlockstreamInfo(address) {
     value: utxo.value,
     isConfirmed: utxo.status.confirmed,
     confirmedAt: utxo.status.block_time
-      ? new Date(utxo.status.block_time)
+      ? new Date(utxo.status.block_time * 1000)
       : undefined,
     confirmations: undefined,
   }));
