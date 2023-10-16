@@ -1,14 +1,7 @@
-import { modulo_power_point } from "./bitcoin/my-elliptic-curves/curves.mjs";
 import { Secp256k1 } from "./bitcoin/my-elliptic-curves/curves.named.mjs";
-import {
-  check_signature,
-  signature,
-} from "./bitcoin/my-elliptic-curves/ecdsa.mjs";
-import { ripemd160 } from "./bitcoin/my-hashes/ripemd160.mjs";
 import { sha256 } from "./bitcoin/my-hashes/sha256.mjs";
-import { packTx } from "./bitcoin/protocol/messages.create.mjs";
+import { packTx, packVarInt } from "./bitcoin/protocol/messages.create.mjs";
 import { readTx } from "./bitcoin/protocol/messages.parse.mjs";
-import { packAsn1PairOfIntegers } from "./bitcoin/script/asn1.mjs";
 import {
   getOpChecksigSignatureValueWitness,
   p2wpkhProgramForOpChecksig,
@@ -17,7 +10,9 @@ import { addressToPkScript } from "./bitcoin/utils/address_to_pkscript.mjs";
 import { arrayToBigint } from "./bitcoin/utils/arraybuffer-bigint.mjs";
 import { bufToHex, parseHexToBuf } from "./bitcoin/utils/arraybuffer-hex.mjs";
 import { bitcoin_address_P2WPKH_from_public_key } from "./bitcoin/utils/bech32/address.mjs";
+import { encodeArrayToBase64 } from "./bitcoin/utils/encodeArrayToBase64.mjs";
 import { joinBuffers } from "./bitcoin/utils/joinBuffers.mjs";
+import { stringToUTF8Array } from "./bitcoin/utils/stringToUtf8Array.mjs";
 import { exportPrivateKeyWifP2WPKH } from "./bitcoin/utils/wif.mjs";
 
 const DUST_LIMIT = 1000;
@@ -259,7 +254,7 @@ export class BitcoinWallet {
         0x01
       );
 
-      const sigDer = this.#privkeys[utxo.keyIndex].sign(dataToSig);
+      const sigDer = this.#privkeys[utxo.keyIndex].signECDSA(dataToSig).der;
 
       const signatureWithHashType = joinBuffers(sigDer, new Uint8Array([0x01]));
 
@@ -338,11 +333,47 @@ export class BitcoinWallet {
   }
 
   /**
+   *
+   * @param {string} messageText
+   * @returns {ArrayBuffer}
+   */
+  #getSignatureMsgHash(messageText) {
+    const MESSAGE_MAGIC = "Bitcoin Signed Message:\n";
+    const stringBytes = stringToUTF8Array(messageText);
+
+    const messageTextArray = [
+      ...packVarInt(MESSAGE_MAGIC.length),
+      ...stringToUTF8Array(MESSAGE_MAGIC),
+      ...packVarInt(stringBytes.length),
+      ...stringBytes,
+    ];
+    const dataBuf = Uint8Array.from(messageTextArray).buffer;
+
+    const msgHashBuf = sha256(dataBuf);
+    return msgHashBuf;
+  }
+  /**
    * @param {string} walletAddress
    * @param {string} messageText
    * */
   signMessage(messageText, walletAddress) {
-    return "TODO SIG";
+    const msgHash = this.#getSignatureMsgHash(messageText);
+    const privKey = this.#privkeys.find(
+      (p, index) => this.getAddress(index) === walletAddress
+    );
+    if (!privKey) {
+      throw new Error(`Do not have private key for this address!`);
+    }
+
+    const sig = privKey.signECDSA(msgHash);
+    const SEGWIT_BECH32 = 39;
+    const sigWithHeader = [
+      SEGWIT_BECH32 + sig.raw.recId,
+      ...sig.raw.r,
+      ...sig.raw.s,
+    ];
+
+    return encodeArrayToBase64(sigWithHeader);
   }
 }
 

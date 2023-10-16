@@ -1,4 +1,5 @@
 import { html } from "./htm.mjs";
+import { BitcoinWallet } from "./wallet.mjs";
 
 /**
  * @param {{

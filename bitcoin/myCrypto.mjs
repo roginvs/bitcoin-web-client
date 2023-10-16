@@ -44,7 +44,7 @@ export class ECPrivateKeyBigints {
   /**
    * @param {ArrayBuffer} dataToSig
    */
-  sign(dataToSig) {
+  signECDSA(dataToSig) {
     const signingInt = arrayToBigint(sha256(dataToSig));
 
     const kBuf = new Uint8Array(32);
@@ -75,10 +75,16 @@ export class ECPrivateKeyBigints {
 
     const s = sig.s > Secp256k1.n / BigInt(2) ? Secp256k1.n - sig.s : sig.s;
 
-    const sigDer = packAsn1PairOfIntegers(
-      bigintToArray(sig.r),
-      bigintToArray(s)
-    );
-    return sigDer;
+    const rBuf = bigintToArray(sig.r);
+    const sBuf = bigintToArray(s);
+    const sigDer = packAsn1PairOfIntegers(rBuf, sBuf);
+    return {
+      der: sigDer,
+      raw: {
+        r: new Uint8Array(rBuf),
+        s: new Uint8Array(bigintToArray(s)),
+        recId: sig.recId,
+      },
+    };
   }
 }
