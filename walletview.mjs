@@ -1,3 +1,5 @@
+import { ExportView } from "./walletview.ExportView.mjs";
+import { SignMessageView } from "./walletview.SignMessageView.mjs";
 import { getTxSize } from "./bitcoin/financial/txsize.mjs";
 import { readTx } from "./bitcoin/protocol/messages.parse.mjs";
 import { bufToHex } from "./bitcoin/utils/arraybuffer-hex.mjs";
@@ -37,37 +39,6 @@ function btcStrToSat(str) {
     return null;
   }
   return parseInt(beforeDot + afterDot);
-}
-
-/**
- * @param {{
- *   wallet: BitcoinWallet,
- *   onClose: () => void,
- * }} props
- */
-function ExportView({ wallet, onClose }) {
-  return html`
-    <div class="send_view">
-      <div
-        class="tx_confirm_row"
-        style="justify-content: center; margin-bottom: 5px;  margin-top: 20px;"
-      >
-        Those are private keys for your wallets:
-      </div>
-      <textarea
-        style="width: 100%; resize: none; margin-bottom: 10px"
-        placeholder=""
-        title=""
-        rows="10"
-        readonly="true"
-        value=${wallet.exportPrivateKeys().join("\n")}
-      />
-
-      <div class="flex_column_center">
-        <button onClick=${onClose} style="width: 150px">Back</button>
-      </div>
-    </div>
-  `;
 }
 
 /**
@@ -368,7 +339,9 @@ export function WalletView({ wallet, onLogout }) {
       : "";
   };
 
-  const [exportView, setExportView] = useState(false);
+  const [otherView, setOtherView] = useState(
+    /** @type {null | "export" | "signmessage"} */ (null)
+  );
 
   const onLogoutClick = (/** @type {MouseEvent} */ e) => {
     e.preventDefault();
@@ -460,11 +433,18 @@ export function WalletView({ wallet, onLogout }) {
                 style="margin-bottom: 15px; color: grey"
                 >Show coins</a
               >`}
-          ${exportView
+          ${otherView === "export"
             ? html`<${ExportView}
                 wallet=${wallet}
                 onClose=${() => {
-                  setExportView(false);
+                  setOtherView(null);
+                }}
+              />`
+            : otherView === "signmessage"
+            ? html`<${SignMessageView}
+                wallet=${wallet}
+                onClose=${() => {
+                  setOtherView(null);
                 }}
               />`
             : readyTxWithSum && balance && fee && value
@@ -536,18 +516,29 @@ export function WalletView({ wallet, onLogout }) {
                 </div>
 
                 <div
-                  class="tx_confirm_row"
+                  class="bottom_controls"
                   style="margin-top: 15px; color: grey; width: 100%"
                 >
                   <a
                     href=""
                     onClick=${(/** @type {MouseEvent} */ e) => {
                       e.preventDefault();
-                      setExportView(true);
+                      setOtherView("signmessage");
+                    }}
+                    >Sign message</a
+                  >
+
+                  <a
+                    href=""
+                    onClick=${(/** @type {MouseEvent} */ e) => {
+                      e.preventDefault();
+                      setOtherView("export");
                     }}
                     >Export key</a
                   >
-                  <a href="" onClick=${onLogoutClick}>Logout</a>
+                  <a href="" style="margin-left: auto" onClick=${onLogoutClick}
+                    >Logout</a
+                  >
                 </div> `}
         `
       : ""}

@@ -53,6 +53,13 @@
   justify-content: space-between;
 }
 
+.bottom_controls {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 10px;
+}
+
 @keyframes blink {
   0% {
     opacity: 0.2;
