@@ -336,6 +336,14 @@ export class BitcoinWallet {
   #getPrivKeysIndexes() {
     return this.#privkeys.map((_, index) => index);
   }
+
+  /**
+   * @param {string} walletAddress
+   * @param {string} messageText
+   * */
+  signMessage(messageText, walletAddress) {
+    return "TODO SIG";
+  }
 }
 
 export function generateRandomWif() {
