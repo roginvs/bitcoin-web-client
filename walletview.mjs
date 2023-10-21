@@ -13,33 +13,7 @@ import {
   useState,
 } from "./thirdparty/hooks.mjs";
 import { BitcoinWallet } from "./wallet.mjs";
-
-/**
- * @param {number} sat
- */
-function satToBtcStr(sat) {
-  let out = sat.toString();
-  out = "0".repeat(Math.max(0, 9 - out.length)) + out;
-  out = out.slice(0, -8) + "." + out.slice(-8);
-  return out;
-}
-
-/**
- *
- * @param {string} str
- */
-function btcStrToSat(str) {
-  let dotIdx = str.indexOf(".");
-  if (dotIdx < 0) {
-    dotIdx = str.length;
-  }
-  const beforeDot = str.slice(0, dotIdx);
-  const afterDot = str.slice(dotIdx + 1).padEnd(8, "0");
-  if (afterDot.length > 8) {
-    return null;
-  }
-  return parseInt(beforeDot + afterDot);
-}
+import { btcStrToSat, satToBtcStr } from "./btc_and_sat.mjs";
 
 /**
  * @typedef {Record<string, number>} FeeEstimates
