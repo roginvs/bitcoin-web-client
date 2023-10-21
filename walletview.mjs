@@ -259,8 +259,8 @@ export function WalletView({ wallet, onLogout }) {
   const [valueStr, setValueStr] = useState("0.0003");
   const [feeStr, setFeeStr] = useState("0.00005");
 
-  const fee = btcStrToSat(feeStr);
-  const value = btcStrToSat(valueStr);
+  const fee = btcStrToSat(feeStr.trim());
+  const value = btcStrToSat(valueStr.trim());
 
   const onMaxClick = () => {
     if (!balance) {
