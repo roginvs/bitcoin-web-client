@@ -82,7 +82,7 @@ export class ECPrivateKeyBigints {
       der: sigDer,
       raw: {
         r: new Uint8Array(rBuf),
-        s: new Uint8Array(bigintToArray(s)),
+        s: new Uint8Array(bigintToArray(sig.s)),
         recId: sig.recId,
       },
     };
