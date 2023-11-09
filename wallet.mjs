@@ -194,7 +194,7 @@ export class BitcoinWallet {
             parseHexToBuf(utxo.txid, true)
           ),
         outpointIndex: utxo.vout,
-        sequence: 0xfffffffe,
+        sequence: 0xfffffffd,
         script:
           /** @type {import("./bitcoin/protocol/messages.types.js").SignatureScript} */ (
             new ArrayBuffer(0)
