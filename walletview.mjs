@@ -458,7 +458,18 @@ export function WalletView({ wallet, onLogout }) {
                     />
                     <button class="btn" onClick=${onMaxClick}>max</button>
                   </div>
-                  <label>Fee (${euroPrice(fee)}): </label>
+                  <label
+                    title=${feeEstimates
+                      ? Object.keys(feeEstimates)
+                          .sort((a, b) => +a - +b)
+                          .map(
+                            (blocks) =>
+                              `In ${blocks} blocks: ${feeEstimates[blocks]} sat/vbyte`
+                          )
+                          .join("\n")
+                      : ""}
+                    >Fee (${euroPrice(fee)}):
+                  </label>
                   <div class="flex_row" style="margin-bottom: 10px">
                     <input
                       style="width: 100%"
