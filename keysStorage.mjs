@@ -38,6 +38,6 @@ export function saveKeysToStorage(keys) {
 
   localStorage.setItem(
     LOCAL_STORAGE_PRIVATE_KEY_KEY,
-    keys.map((key) => encodePrefixedWif(key)).join(" ")
+    "v2 " + keys.map((key) => encodePrefixedWif(key)).join(" ")
   );
 }

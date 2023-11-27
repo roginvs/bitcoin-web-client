@@ -39,7 +39,7 @@ export function parsePrefixedWif(str) {
       key: key,
     };
   } else {
-    throw new Error(`Unknown prefix`);
+    throw new Error(`Unknown prefix "${prefix}"`);
   }
 }
 
