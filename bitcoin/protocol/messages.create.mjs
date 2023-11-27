@@ -113,6 +113,16 @@ export function packUint32(val) {
   return buf;
 }
 
+/**
+ *
+ * @param {bigint} val
+ */
+export function packUint64(val) {
+  const buf = new ArrayBuffer(8);
+  new DataView(buf).setBigUint64(0, val, true);
+  return buf;
+}
+
 describe(`Pack sample tx`, () => {
   const tx = {
     version: 2,
