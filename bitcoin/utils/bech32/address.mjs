@@ -1,3 +1,4 @@
+import { assertNever } from "../../../assertNever.mjs";
 import { ripemd160 } from "../../my-hashes/ripemd160.mjs";
 import { sha256 } from "../../my-hashes/sha256.mjs";
 import { describe, eq } from "../../tests.mjs";
@@ -24,7 +25,7 @@ export function get_bitcoin_address(pubKey, type) {
       throw new Error(`Wrong public key`);
     }
   } else {
-    throw new Error(`Unknown type "${type}"`);
+    assertNever(type);
   }
 }
 

@@ -1,5 +1,7 @@
 /** @typedef {"bech32" | "bech32m"} Encoding */
 
+import { assertNever } from "../../../assertNever.mjs";
+
 // Copyright (c) 2017, 2021 Pieter Wuille
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -37,7 +39,7 @@ function getEncodingConst(enc) {
   } else if (enc == encodings.BECH32M) {
     return 0x2bc830a3;
   } else {
-    throw new Error(`Unknown encoding ${enc}`);
+    assertNever(enc);
   }
 }
 
