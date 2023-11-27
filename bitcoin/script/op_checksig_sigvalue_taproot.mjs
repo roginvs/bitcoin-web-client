@@ -104,6 +104,12 @@ export function getOpChecksigSignatureValueTapRoot(
     );
   }
 
+  if (!hashCode.isSigHashSingle && !hashCode.isSigHashNone) {
+    bufs.push(
+      sha256(joinBuffers(...spending.txOut.map((txout) => packTxOut(txout))))
+    );
+  }
+
   for (const b of bufs) {
     console.info(bufToHex(b));
   }
