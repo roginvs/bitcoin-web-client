@@ -3,6 +3,7 @@ import { Secp256k1 } from "./my-elliptic-curves/curves.named.mjs";
 import { check_signature, signature } from "./my-elliptic-curves/ecdsa.mjs";
 import { sha256 } from "./my-hashes/sha256.mjs";
 import { packAsn1PairOfIntegers } from "./script/asn1.mjs";
+import { describe } from "./tests.mjs";
 import { arrayToBigint, bigintToArray } from "./utils/arraybuffer-bigint.mjs";
 
 /** @typedef {import("./ecKey").ECPrivateKey} ECPrivateKey */
@@ -87,4 +88,17 @@ export class ECPrivateKeyBigints {
       },
     };
   }
+
+  /**
+   *
+   * @param {Uint8Array} message
+   * @param {Uint8Array} k
+   */
+  signSchnorrWithK(message, k) {
+    const dPrime = arrayToBigint(this.privateKey);
+  }
 }
+
+describe("Schnorr signature", () => {
+  //kek
+});
