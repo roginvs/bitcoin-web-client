@@ -61,7 +61,9 @@ export function LoginView({ onLogin }) {
     <textarea
       style="width: 100%; resize: none; margin-bottom: 10px"
       type="text"
-      placeholder="p2wpkh:xxxxxxxxx"
+      placeholder="p2wpkh:xxxxxxxxx
+p2tr:xxxxxxxxx
+..."
       title=""
       rows="15"
       value=${wifs}
