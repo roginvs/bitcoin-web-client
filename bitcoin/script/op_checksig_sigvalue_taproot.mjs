@@ -80,7 +80,28 @@ export function getOpChecksigSignatureValueTapRoot(
       )
     );
 
-    // TODO: Script pub keys
+    bufs.push(
+      sha256(
+        joinBuffers(
+          ...sourcePkScripts.map((script) =>
+            joinBuffers(
+              new Uint8Array(packVarInt(script.byteLength)),
+              new Uint8Array(script)
+            )
+          )
+        )
+      )
+    );
+
+    bufs.push(
+      sha256(
+        joinBuffers(
+          ...spending.txIn.map((outpoint) =>
+            joinBuffers(new Uint8Array(packUint32(outpoint.sequence)))
+          )
+        )
+      )
+    );
   }
 
   for (const b of bufs) {
