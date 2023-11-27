@@ -22,6 +22,7 @@ import { packHashCodeType, readHashCodeType } from "./hashCode.mjs";
  * @param {bigint[]} sourceAmounts
  * @param {number | ReturnType<typeof readHashCodeType>} hashCodeType
  * @param {number} extFlag
+ * @param {Uint8Array | null} annex
  */
 export function getOpChecksigSignatureValueTapRoot(
   spending,
@@ -37,7 +38,8 @@ export function getOpChecksigSignatureValueTapRoot(
    * 0x01 is SIGHASH_ALL default
    */
   hashCodeType,
-  extFlag
+  extFlag = 0,
+  annex = null
 ) {
   const hashCode =
     typeof hashCodeType === "number"
@@ -110,9 +112,41 @@ export function getOpChecksigSignatureValueTapRoot(
     );
   }
 
-  for (const b of bufs) {
-    console.info(bufToHex(b));
+  bufs.push(new Uint8Array([extFlag * 2 + (annex ? 1 : 0)]));
+
+  if (hashCode.isSigHashAnyoneCanPay) {
+    // TODO: this is not tested
+    bufs.push(
+      joinBuffers(
+        new Uint8Array(spending.txIn[spendingIndex].outpointHash),
+        new Uint8Array(packUint32(spending.txIn[spendingIndex].outpointIndex))
+      )
+    );
+
+    bufs.push(new Uint8Array(packUint64(sourceAmounts[spendingIndex])));
+
+    bufs.push(
+      joinBuffers(
+        new Uint8Array(packVarInt(sourcePkScripts[spendingIndex].byteLength)),
+        new Uint8Array(sourcePkScripts[spendingIndex])
+      )
+    );
+
+    bufs.push(
+      new Uint8Array(packUint32(spending.txIn[spendingIndex].sequence))
+    );
+  } else {
+    bufs.push(new Uint8Array(packUint32(spendingIndex)));
   }
+  if (annex) {
+    throw new Error("Annex is not implemented. Quite simple to add by the way");
+  }
+
+  if (hashCode.isSigHashSingle) {
+    // TODO: Not tested
+    bufs.push(sha256(packTxOut(spending.txOut[spendingIndex])));
+  }
+
   //bufs.push(packUint32(spending.version));
 
   /*
@@ -287,14 +321,15 @@ describe("getOpChecksigSignatureValueTapRoot", () => {
   const sourceAmounts = utxosSpent.map((utxo) => BigInt(utxo.amountSats));
 
   {
-    getOpChecksigSignatureValueTapRoot(
+    const sigHash = getOpChecksigSignatureValueTapRoot(
       tx,
-      0,
+      3,
       sourcePkScripts,
       sourceAmounts,
       0x01,
       0
     );
+    console.info("kek", bufToHex(sigHash));
   }
 
   //  const input0 = {
