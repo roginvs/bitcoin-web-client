@@ -332,7 +332,7 @@ export function WalletView({ wallet, onLogout }) {
 
   return html`<div class="view flex_column_center">
     <div>Your addresses:</div>
-    <div style="margin-bottom: 10px;">
+    <div style="margin-bottom: 10px; text-align: center;">
       ${wallet.getAddresses().map((addr) => html`<div><b>${addr}</b><//>`)}
     </div>
     <h3>

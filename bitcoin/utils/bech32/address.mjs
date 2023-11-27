@@ -1,16 +1,44 @@
 import { ripemd160 } from "../../my-hashes/ripemd160.mjs";
 import { sha256 } from "../../my-hashes/sha256.mjs";
+import { describe, eq } from "../../tests.mjs";
+import { parseHexToBuf } from "../arraybuffer-hex.mjs";
 import { checkPublicKey } from "../checkPublicKey.mjs";
+import { parsePrefixedWif } from "../wif.mjs";
 import { encode } from "./segwit_addr.mjs";
 
 /**
  * @param {ArrayBuffer} pubKey
+ * @param {ReturnType<typeof parsePrefixedWif>['type']} type
  */
-export function bitcoin_address_P2WPKH_from_public_key(pubKey) {
+export function get_bitcoin_address(pubKey, type) {
   checkPublicKey(pubKey);
-  const hash = ripemd160(sha256(pubKey));
-  return encode("bc", 0, [...new Uint8Array(hash)]);
+  if (type === "p2wpkh") {
+    const hash = ripemd160(sha256(pubKey));
+    return encode("bc", 0, [...new Uint8Array(hash)]);
+  } else if (type === "p2tr") {
+    if (pubKey.byteLength === 33) {
+      return encode("bc", 1, [...new Uint8Array(pubKey.slice(1))]);
+    } else if (pubKey.byteLength === 65) {
+      return encode("bc", 1, [...new Uint8Array(pubKey.slice(1, 33))]);
+    } else {
+      throw new Error(`Wrong public key`);
+    }
+  } else {
+    throw new Error(`Unknown type "${type}"`);
+  }
 }
+
+describe("get_bitcoin_address", () => {
+  eq(
+    get_bitcoin_address(
+      parseHexToBuf(
+        "02a37c3903c8d0db6512e2b40b0dffa05e5a3ab73603ce8c9c4b7771e5412328f9"
+      ),
+      "p2tr"
+    ),
+    "bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297"
+  );
+});
 
 /**
  *

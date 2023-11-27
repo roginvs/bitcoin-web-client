@@ -10,7 +10,7 @@ import {
 import { addressToPkScript } from "./bitcoin/utils/address_to_pkscript.mjs";
 import { arrayToBigint } from "./bitcoin/utils/arraybuffer-bigint.mjs";
 import { bufToHex, parseHexToBuf } from "./bitcoin/utils/arraybuffer-hex.mjs";
-import { bitcoin_address_P2WPKH_from_public_key } from "./bitcoin/utils/bech32/address.mjs";
+import { get_bitcoin_address } from "./bitcoin/utils/bech32/address.mjs";
 import { encodeArrayToBase64 } from "./bitcoin/utils/encodeArrayToBase64.mjs";
 import { joinBuffers } from "./bitcoin/utils/joinBuffers.mjs";
 import { stringToUTF8Array } from "./bitcoin/utils/stringToUtf8Array.mjs";
@@ -309,7 +309,7 @@ export class BitcoinWallet {
    */
   getAddress(keyIndex) {
     const pubKey = this.#privkeys[keyIndex].crypto.compressedPubkey;
-    const address = bitcoin_address_P2WPKH_from_public_key(pubKey);
+    const address = get_bitcoin_address(pubKey, this.#privkeys[keyIndex].type);
     if (!address) {
       throw new Error(`Something wrong with address`);
     }
