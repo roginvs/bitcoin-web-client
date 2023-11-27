@@ -1,16 +1,40 @@
-import { importPrivateKeyWifP2WPKH } from "./bitcoin/utils/wif.mjs";
+import { Secp256k1 } from "./bitcoin/my-elliptic-curves/curves.named.mjs";
+import { arrayToBigint } from "./bitcoin/utils/arraybuffer-bigint.mjs";
+import { encodePrefixedWif, parsePrefixedWif } from "./bitcoin/utils/wif.mjs";
 import { html } from "./htm.mjs";
 import { useState } from "./thirdparty/hooks.mjs";
-import { generateRandomWif } from "./wallet.mjs";
 
 /**
- * @param {{ onLogin: (keys: ArrayBuffer[], rememberMe: boolean) => void}} props
+ *
+ * @param {ReturnType<typeof parsePrefixedWif>['type']} type
+ * @returns
+ */
+function generateRandomWif(type) {
+  const keyBuf = new Uint8Array(32);
+  crypto.getRandomValues(keyBuf);
+  const key = arrayToBigint(keyBuf);
+  if (key >= Secp256k1.n || key <= BigInt(1)) {
+    throw new Error(`Bad luck!`);
+  }
+  return encodePrefixedWif(
+    {
+      type,
+      key: keyBuf.buffer,
+    },
+    true
+  );
+}
+
+/**
+ * @param {{ onLogin: (keys: ReturnType<typeof parsePrefixedWif>[], rememberMe: boolean) => void}} props
  */
 export function LoginView({ onLogin }) {
   const [wifs, setWifs] = useState("");
 
   const onGenerate = () => {
-    setWifs([1].map(() => generateRandomWif()).join("\n"));
+    setWifs(
+      [generateRandomWif("p2wpkh"), generateRandomWif("p2tr")].join("\n")
+    );
   };
   const onNext = () => {
     if (!wifs) {
@@ -21,8 +45,7 @@ export function LoginView({ onLogin }) {
       .split(/\r\n|\n|\t/)
       .map((x) => x.trim())
       .filter((x) => x)
-      .filter((x) => x.startsWith("p2wpkh:"))
-      .map((x) => importPrivateKeyWifP2WPKH(x));
+      .map((x) => parsePrefixedWif(x));
     const isRemember = /** @type {HTMLInputElement} */ (
       document.getElementById("remember_me_checkbox")
     ).checked;

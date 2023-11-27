@@ -1,5 +1,6 @@
 import { Secp256k1 } from "./bitcoin/my-elliptic-curves/curves.named.mjs";
 import { sha256 } from "./bitcoin/my-hashes/sha256.mjs";
+import { ECPrivateKeyBigints } from "./bitcoin/myCrypto.mjs";
 import { packTx, packVarInt } from "./bitcoin/protocol/messages.create.mjs";
 import { readTx } from "./bitcoin/protocol/messages.parse.mjs";
 import {
@@ -13,7 +14,7 @@ import { bitcoin_address_P2WPKH_from_public_key } from "./bitcoin/utils/bech32/a
 import { encodeArrayToBase64 } from "./bitcoin/utils/encodeArrayToBase64.mjs";
 import { joinBuffers } from "./bitcoin/utils/joinBuffers.mjs";
 import { stringToUTF8Array } from "./bitcoin/utils/stringToUtf8Array.mjs";
-import { exportPrivateKeyWifP2WPKH } from "./bitcoin/utils/wif.mjs";
+import { encodePrefixedWif, parsePrefixedWif } from "./bitcoin/utils/wif.mjs";
 
 const DUST_LIMIT = 1000;
 /**
@@ -76,15 +77,18 @@ async function getUtxoFromBlockhainInfo(address) {
 export class BitcoinWallet {
   /**
    *
-   * @param {(import("./bitcoin/ecKey.js").ECPrivateKey)[]} privKeys
+   * @param {(ReturnType<typeof parsePrefixedWif>)[]} privKeys
    */
   constructor(privKeys) {
-    this.#privkeys = privKeys;
+    this.#privkeys = privKeys.map((key) => ({
+      ...key,
+      crypto: new ECPrivateKeyBigints(key.key),
+    }));
     if (this.#privkeys.length === 0) {
       throw new Error(`No private keys provided!`);
     }
   }
-  /** @type {import("./bitcoin/ecKey.js").ECPrivateKey[]} */
+  /** @type {(ReturnType<typeof parsePrefixedWif> & {crypto: import("./bitcoin/ecKey.js").ECPrivateKey})[]} */
   #privkeys;
 
   /**
@@ -179,7 +183,7 @@ export class BitcoinWallet {
     const changePkScript = addressToPkScript(this.getAddress(0));
 
     const myPublicKeys = this.#privkeys.map(
-      (privKey) => privKey.compressedPubkey.buffer
+      (privKey) => privKey.crypto.compressedPubkey.buffer
     );
 
     const changeValue =
@@ -254,7 +258,8 @@ export class BitcoinWallet {
         0x01
       );
 
-      const sigDer = this.#privkeys[utxo.keyIndex].signECDSA(dataToSig).der;
+      const sigDer =
+        this.#privkeys[utxo.keyIndex].crypto.signECDSA(dataToSig).der;
 
       const signatureWithHashType = joinBuffers(sigDer, new Uint8Array([0x01]));
 
@@ -303,7 +308,7 @@ export class BitcoinWallet {
    * @param {number} keyIndex
    */
   getAddress(keyIndex) {
-    const pubKey = this.#privkeys[keyIndex].compressedPubkey;
+    const pubKey = this.#privkeys[keyIndex].crypto.compressedPubkey;
     const address = bitcoin_address_P2WPKH_from_public_key(pubKey);
     if (!address) {
       throw new Error(`Something wrong with address`);
@@ -319,7 +324,7 @@ export class BitcoinWallet {
    * @param {number} keyIndex
    */
   exportPrivateKey(keyIndex) {
-    return exportPrivateKeyWifP2WPKH(this.#privkeys[keyIndex].privateKey, true);
+    return encodePrefixedWif(this.#privkeys[keyIndex], true);
   }
 
   exportPrivateKeys() {
@@ -365,7 +370,7 @@ export class BitcoinWallet {
       throw new Error(`Do not have private key for this address!`);
     }
 
-    const sig = privKey.signECDSA(msgHash);
+    const sig = privKey.crypto.signECDSA(msgHash);
     const SEGWIT_BECH32 = 39;
     const sigWithHeader = [
       SEGWIT_BECH32 + sig.raw.recId,
@@ -375,14 +380,4 @@ export class BitcoinWallet {
 
     return encodeArrayToBase64(sigWithHeader);
   }
-}
-
-export function generateRandomWif() {
-  const keyBuf = new Uint8Array(32);
-  crypto.getRandomValues(keyBuf);
-  const key = arrayToBigint(keyBuf);
-  if (key >= Secp256k1.n || key <= BigInt(1)) {
-    throw new Error(`Bad luck!`);
-  }
-  return exportPrivateKeyWifP2WPKH(keyBuf.buffer, true);
 }

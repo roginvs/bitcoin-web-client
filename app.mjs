@@ -1,48 +1,40 @@
 import { ECPrivateKeyBigints } from "./bitcoin/myCrypto.mjs";
 import { bufToHex, parseHexToBuf } from "./bitcoin/utils/arraybuffer-hex.mjs";
+import { parsePrefixedWif } from "./bitcoin/utils/wif.mjs";
 import { html } from "./htm.mjs";
+import { loadSavedKeysFromStorage, saveKeysToStorage } from "./keysStorage.mjs";
 import { LoginView } from "./loginview.mjs";
 import { useState } from "./thirdparty/hooks.mjs";
 import { BitcoinWallet } from "./wallet.mjs";
 import { WalletView } from "./walletview.mjs";
 
-const LOCAL_STORAGE_PRIVATE_KEY_KEY = "bitcoin_wallet_private_key";
 /**
  *
  * @param {{}} props
  */
 export function App(props) {
   const [wallet, setWallet] = useState(() => {
-    const privateKeysHex = localStorage.getItem(LOCAL_STORAGE_PRIVATE_KEY_KEY);
-    if (!privateKeysHex) {
-      return null;
+    // todo read
+    const keys = loadSavedKeysFromStorage();
+    if (!keys) {
+      return;
     }
-    const privKeys = privateKeysHex
-      .split(" ")
-      .map((keyHex) => parseHexToBuf(keyHex));
-    return new BitcoinWallet(
-      privKeys.map((privKey) => new ECPrivateKeyBigints(privKey))
-    );
+    return new BitcoinWallet(keys);
   });
 
   const onLogout = () => {
-    localStorage.removeItem(LOCAL_STORAGE_PRIVATE_KEY_KEY);
+    saveKeysToStorage(null);
     document.location.reload();
   };
 
   const onLogin = (
-    /** @type {ArrayBuffer[]} */ keys,
+    /** @type {ReturnType<typeof parsePrefixedWif>[]} */ keys,
     /** @type {boolean} */ isRemember
   ) => {
     if (isRemember) {
-      localStorage.setItem(
-        LOCAL_STORAGE_PRIVATE_KEY_KEY,
-        keys.map((key) => bufToHex(key)).join(" ")
-      );
+      saveKeysToStorage(keys);
     }
-    setWallet(
-      new BitcoinWallet(keys.map((key) => new ECPrivateKeyBigints(key)))
-    );
+    setWallet(new BitcoinWallet(keys));
   };
 
   if (!wallet) {

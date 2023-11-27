@@ -6,37 +6,65 @@ import { joinBuffers } from "./joinBuffers.mjs";
 
 /**
  *
- * @param {ArrayBuffer} privKey
+ * @param {ReturnType<typeof parsePrefixedWif>} privKey
  * @param {boolean} [isCompressed=true]
  */
-export function exportPrivateKeyWifP2WPKH(privKey, isCompressed = true) {
+export function encodePrefixedWif(privKey, isCompressed = true) {
   // https://en.bitcoin.it/wiki/Wallet_import_format
   const step2 = joinBuffers(
     new Uint8Array([0x80]),
-    new Uint8Array(privKey),
+    new Uint8Array(privKey.key),
     new Uint8Array(isCompressed ? [1] : [])
   );
   const hash = double_sha256(step2);
   const step6 = joinBuffers(step2, new Uint8Array(hash.slice(0, 4)));
-  return "p2wpkh:" + base58encode(step6);
+  return privKey.type + ":" + base58encode(step6);
+}
+
+/**
+ *
+ * @param {string} str
+ */
+export function parsePrefixedWif(str) {
+  const [wif, prefix] = str.split(":").reverse();
+  const key = readPrivateKeyFromWif(wif);
+  if (prefix === "p2wpkh" || !prefix) {
+    return {
+      type: /** @type {const} */ ("p2wpkh"),
+      key: key,
+    };
+  } else if (prefix === "p2tr") {
+    return {
+      type: /** @type {const} */ ("p2tr"),
+      key: key,
+    };
+  } else {
+    throw new Error(`Unknown prefix`);
+  }
 }
 
 describe(`exportPrivateKey`, () => {
   eq(
-    exportPrivateKeyWifP2WPKH(
-      parseHexToBuf(
-        "0C28FCA386C7A227600B2FE50B7CAE11EC86D3BF1FBE471BE89827E19D72AA1D"
-      ),
+    encodePrefixedWif(
+      {
+        key: parseHexToBuf(
+          "0C28FCA386C7A227600B2FE50B7CAE11EC86D3BF1FBE471BE89827E19D72AA1D"
+        ),
+        type: "p2wpkh",
+      },
       false
     ),
     "p2wpkh:5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ"
   );
 
   eq(
-    exportPrivateKeyWifP2WPKH(
-      parseHexToBuf(
-        "0C28FCA386C7A227600B2FE50B7CAE11EC86D3BF1FBE471BE89827E19D72AA1D"
-      ),
+    encodePrefixedWif(
+      {
+        key: parseHexToBuf(
+          "0C28FCA386C7A227600B2FE50B7CAE11EC86D3BF1FBE471BE89827E19D72AA1D"
+        ),
+        type: "p2wpkh",
+      },
       true
     ),
     "p2wpkh:KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617"
@@ -47,11 +75,8 @@ describe(`exportPrivateKey`, () => {
  *
  * @param {string} wif
  */
-export function importPrivateKeyWifP2WPKH(wif) {
-  if (!wif.startsWith("p2wpkh:")) {
-    throw new Error(`Only supported wifs are p2wpkh:`);
-  }
-  const step6 = base58decode(wif.slice("p2wpkh:".length));
+export function readPrivateKeyFromWif(wif) {
+  const step6 = base58decode(wif);
   const step2 = step6.slice(0, step6.byteLength - 4);
   const checksum = step6.slice(step6.byteLength - 4);
   if (bufToHex(checksum) !== bufToHex(double_sha256(step2).slice(0, 4))) {
@@ -73,10 +98,55 @@ export function importPrivateKeyWifP2WPKH(wif) {
 describe(`importPrivateKey`, () => {
   eq(
     bufToHex(
-      importPrivateKeyWifP2WPKH(
-        "p2wpkh:KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617"
+      readPrivateKeyFromWif(
+        "KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617"
       )
     ).toUpperCase(),
     "0C28FCA386C7A227600B2FE50B7CAE11EC86D3BF1FBE471BE89827E19D72AA1D"
   );
+});
+
+describe("parseWifStringWithPrefix", () => {
+  {
+    const r = parsePrefixedWif(
+      "p2wpkh:KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617"
+    );
+    eq(r.type, "p2wpkh");
+    eq(
+      bufToHex(r.key).toUpperCase(),
+      "0C28FCA386C7A227600B2FE50B7CAE11EC86D3BF1FBE471BE89827E19D72AA1D"
+    );
+  }
+  {
+    const r = parsePrefixedWif(
+      "KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617"
+    );
+    eq(r.type, "p2wpkh");
+    eq(
+      bufToHex(r.key).toUpperCase(),
+      "0C28FCA386C7A227600B2FE50B7CAE11EC86D3BF1FBE471BE89827E19D72AA1D"
+    );
+  }
+  {
+    const r = parsePrefixedWif(
+      "p2tr:KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617"
+    );
+    eq(r.type, "p2tr");
+    eq(
+      bufToHex(r.key).toUpperCase(),
+      "0C28FCA386C7A227600B2FE50B7CAE11EC86D3BF1FBE471BE89827E19D72AA1D"
+    );
+  }
+
+  {
+    let r;
+    try {
+      r = parsePrefixedWif(
+        "kek:KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617"
+      );
+    } catch (e) {
+      r = "throw";
+    }
+    eq(r, "throw");
+  }
 });
