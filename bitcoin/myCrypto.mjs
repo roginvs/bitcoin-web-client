@@ -88,17 +88,4 @@ export class ECPrivateKeyBigints {
       },
     };
   }
-
-  /**
-   *
-   * @param {Uint8Array} message
-   * @param {Uint8Array} k
-   */
-  signSchnorrWithK(message, k) {
-    const dPrime = arrayToBigint(this.privateKey);
-  }
 }
-
-describe("Schnorr signature", () => {
-  //kek
-});
