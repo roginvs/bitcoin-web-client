@@ -1,4 +1,9 @@
-import { modulo_power_point } from "./my-elliptic-curves/curves.mjs";
+import {
+  get_point_from_x,
+  get_point_inverse,
+  modulo_power_point,
+  point_add,
+} from "./my-elliptic-curves/curves.mjs";
 import { Secp256k1 } from "./my-elliptic-curves/curves.named.mjs";
 import { taggedTash } from "./my-hashes/taggedHash.mjs";
 import { describe, eq } from "./tests.mjs";
@@ -52,9 +57,13 @@ export function signSchnorrWithK(privateKey, message, a) {
   const sig1 = bytes_R;
   const sig2 = new Uint8Array(bigintToArray((k + e * d) % Secp256k1.n, 32));
 
-  // @TODO: Verify
+  const sig = joinBuffers(sig1, sig2);
 
-  return joinBuffers(sig1, sig2);
+  if (!verifySchnorr(bytes_P, message, sig)) {
+    throw new Error(`Verification failed`);
+  }
+
+  return sig;
 }
 /**
  *
@@ -70,6 +79,73 @@ function byteWiseXor(a, b) {
     out[i] = a[i] ^ b[i];
   }
   return out;
+}
+
+/**
+ *
+ * @param {bigint} x
+ * @returns {import("./my-elliptic-curves/curves.types").Point}
+ */
+function lift_x(x) {
+  const P = get_point_from_x(x, Secp256k1.a, Secp256k1.b, Secp256k1.p);
+  if (!P) {
+    return null;
+  }
+  if (P[1] % 2n === 0n) {
+    return P;
+  } else {
+    return [P[0], Secp256k1.p - P[1]];
+  }
+}
+/**
+ *
+ * @param {Uint8Array} publicKey
+ * @param {Uint8Array} message
+ * @param {Uint8Array} sig
+ */
+export function verifySchnorr(publicKey, message, sig) {
+  const P = lift_x(arrayToBigint(publicKey));
+  if (!P) {
+    return false;
+  }
+  const r = arrayToBigint(sig.slice(0, 32));
+  if (r >= Secp256k1.p) {
+    return false;
+  }
+  const s = arrayToBigint(sig.slice(32, 64));
+  if (s >= Secp256k1.n) {
+    return false;
+  }
+  const e =
+    arrayToBigint(
+      taggedTash(
+        "BIP0340/challenge",
+        joinBuffers(
+          sig.slice(0, 32),
+          new Uint8Array(bigintToArray(P[0], 32)),
+          message
+        )
+      )
+    ) % Secp256k1.n;
+  const R = point_add(
+    modulo_power_point(Secp256k1.G, s, Secp256k1.a, Secp256k1.p),
+    get_point_inverse(
+      modulo_power_point(P, e, Secp256k1.a, Secp256k1.p),
+      Secp256k1.p
+    ),
+    Secp256k1.a,
+    Secp256k1.p
+  );
+  if (!R) {
+    return false;
+  }
+  if (R[1] % 2n !== 0n) {
+    return false;
+  }
+  if (R[0] !== r) {
+    return false;
+  }
+  return true;
 }
 
 describe("byteWiseXor", () => {
