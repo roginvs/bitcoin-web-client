@@ -1,6 +1,7 @@
 import { assertNever } from "./assertNever.mjs";
 import { Secp256k1 } from "./bitcoin/my-elliptic-curves/curves.named.mjs";
 import { sha256 } from "./bitcoin/my-hashes/sha256.mjs";
+import { taggedTash } from "./bitcoin/my-hashes/taggedHash.mjs";
 import { ECPrivateKeyBigints } from "./bitcoin/myCrypto.mjs";
 import { signSchnorr } from "./bitcoin/myCryptoSchnorr.mjs";
 import { packTx, packVarInt } from "./bitcoin/protocol/messages.create.mjs";
@@ -286,14 +287,21 @@ export class BitcoinWallet {
           )
         );
       } else if (key.type === "p2tr") {
-        const dataToSig = getOpChecksigSignatureValueTapRoot(
+        const message = getOpChecksigSignatureValueTapRoot(
           spendingTx,
           utxoIndex,
           spendingPkScripts,
           spendingValues,
           0x00
         );
-        const signature = signSchnorr(new Uint8Array(key.key), dataToSig);
+        const dataToSig = taggedTash(
+          "TapSighash",
+          joinBuffers(new Uint8Array([0]), message)
+        );
+        const signature = signSchnorr(
+          new Uint8Array(key.key),
+          new Uint8Array(dataToSig)
+        );
         witness.push(
           /** @type {import("./bitcoin/protocol/messages.types.js").WitnessStackItem} */ (
             signature.buffer
