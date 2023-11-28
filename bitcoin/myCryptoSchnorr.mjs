@@ -14,9 +14,19 @@ import { joinBuffers } from "./utils/joinBuffers.mjs";
 /**
  * @param {Uint8Array} privateKey
  * @param {Uint8Array} message
+ */
+export function signSchnorr(privateKey, message) {
+  const kBuf = new Uint8Array(32);
+  crypto.getRandomValues(kBuf);
+  return signSchnorrWithK(privateKey, message, kBuf);
+}
+
+/**
+ * @param {Uint8Array} privateKey
+ * @param {Uint8Array} message
  * @param {Uint8Array} a
  */
-export function signSchnorrWithK(privateKey, message, a) {
+function signSchnorrWithK(privateKey, message, a) {
   if (a.byteLength !== 32) {
     throw new Error(`Wrong K`);
   }

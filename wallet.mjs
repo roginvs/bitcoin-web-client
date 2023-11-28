@@ -1,8 +1,11 @@
+import { assertNever } from "./assertNever.mjs";
 import { Secp256k1 } from "./bitcoin/my-elliptic-curves/curves.named.mjs";
 import { sha256 } from "./bitcoin/my-hashes/sha256.mjs";
 import { ECPrivateKeyBigints } from "./bitcoin/myCrypto.mjs";
+import { signSchnorr } from "./bitcoin/myCryptoSchnorr.mjs";
 import { packTx, packVarInt } from "./bitcoin/protocol/messages.create.mjs";
 import { readTx } from "./bitcoin/protocol/messages.parse.mjs";
+import { getOpChecksigSignatureValueTapRoot } from "./bitcoin/script/op_checksig_sigvalue_taproot.mjs";
 import {
   getOpChecksigSignatureValueWitness,
   p2wpkhProgramForOpChecksig,
@@ -235,25 +238,15 @@ export class BitcoinWallet {
         ),
     };
 
+    const spendingPkScripts = spendingUtxos.map((utxo) =>
+      addressToPkScript(this.getAddress(utxo.keyIndex))
+    );
+    const spendingValues = spendingUtxos.map((utxo) => BigInt(utxo.value));
+
     for (let utxoIndex = 0; utxoIndex < spendingUtxos.length; utxoIndex++) {
       const utxo = spendingUtxos[utxoIndex];
 
-      const spendingPkScript = addressToPkScript(
-        this.getAddress(utxo.keyIndex)
-      );
-
-      const dataToSig = getOpChecksigSignatureValueWitness(
-        spendingTx,
-        utxoIndex,
-        p2wpkhProgramForOpChecksig(spendingPkScript.slice(2)),
-        BigInt(utxo.value),
-        0x01
-      );
-
-      const sigDer =
-        this.#privkeys[utxo.keyIndex].crypto.signECDSA(dataToSig).der;
-
-      const signatureWithHashType = joinBuffers(sigDer, new Uint8Array([0x01]));
+      const key = this.#privkeys[utxo.keyIndex];
 
       const witness = spendingTx.txIn[utxoIndex].witness;
       if (!witness) {
@@ -262,16 +255,53 @@ export class BitcoinWallet {
       if (witness.length !== 0) {
         throw new Error(`Internel error: witness have items`);
       }
-      witness.push(
-        /** @type {import("./bitcoin/protocol/messages.types.js").WitnessStackItem}*/ (
-          signatureWithHashType.buffer
-        )
-      );
-      witness.push(
-        /** @type {import("./bitcoin/protocol/messages.types.js").WitnessStackItem} */ (
-          myPublicKeys[utxo.keyIndex]
-        )
-      );
+
+      if (key.type === "p2wpkh") {
+        const spendingPkScript = spendingPkScripts[utxoIndex];
+
+        const dataToSig = getOpChecksigSignatureValueWitness(
+          spendingTx,
+          utxoIndex,
+          p2wpkhProgramForOpChecksig(spendingPkScript.slice(2)),
+          spendingValues[utxoIndex],
+          0x01
+        );
+
+        const sigDer =
+          this.#privkeys[utxo.keyIndex].crypto.signECDSA(dataToSig).der;
+
+        const signatureWithHashType = joinBuffers(
+          sigDer,
+          new Uint8Array([0x01])
+        );
+
+        witness.push(
+          /** @type {import("./bitcoin/protocol/messages.types.js").WitnessStackItem}*/ (
+            signatureWithHashType.buffer
+          )
+        );
+        witness.push(
+          /** @type {import("./bitcoin/protocol/messages.types.js").WitnessStackItem} */ (
+            myPublicKeys[utxo.keyIndex]
+          )
+        );
+      } else if (key.type === "p2tr") {
+        const dataToSig = getOpChecksigSignatureValueTapRoot(
+          spendingTx,
+          utxoIndex,
+          spendingPkScripts,
+          spendingValues,
+          0x00
+        );
+        const signature = signSchnorr(new Uint8Array(key.key), dataToSig);
+        witness.push(
+          /** @type {import("./bitcoin/protocol/messages.types.js").WitnessStackItem} */ (
+            signature.buffer
+          )
+        );
+      } else {
+        assertNever(key);
+      }
     }
 
     const packedTx = packTx(spendingTx);
