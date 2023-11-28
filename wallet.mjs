@@ -203,15 +203,7 @@ export class BitcoinWallet {
           /** @type {import("./bitcoin/protocol/messages.types.js").SignatureScript} */ (
             new ArrayBuffer(0)
           ),
-        witness: [
-          // This is signature+hashCodeType. Adding here to estimate size, we will replace it later
-          /** @type {import("./bitcoin/protocol/messages.types.js").WitnessStackItem} */ (
-            new ArrayBuffer(73)
-          ),
-          /** @type {import("./bitcoin/protocol/messages.types.js").WitnessStackItem} */ (
-            myPublicKeys[utxo.keyIndex]
-          ),
-        ],
+        witness: [],
       })),
 
       txOut: [
@@ -267,10 +259,19 @@ export class BitcoinWallet {
       if (!witness) {
         throw new Error(`Internal error`);
       }
-      witness[0] =
+      if (witness.length !== 0) {
+        throw new Error(`Internel error: witness have items`);
+      }
+      witness.push(
         /** @type {import("./bitcoin/protocol/messages.types.js").WitnessStackItem}*/ (
           signatureWithHashType.buffer
-        );
+        )
+      );
+      witness.push(
+        /** @type {import("./bitcoin/protocol/messages.types.js").WitnessStackItem} */ (
+          myPublicKeys[utxo.keyIndex]
+        )
+      );
     }
 
     const packedTx = packTx(spendingTx);
