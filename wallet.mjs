@@ -240,16 +240,17 @@ export class BitcoinWallet {
         ),
     };
 
-    console.info(spendingTx);
-
-    console.info("PSBT:");
-    console.info(bufToHex(packTxToPSBT(spendingTx)));
-    console.info(btoa(String.fromCharCode(...packTxToPSBT(spendingTx))));
-
     const spendingPkScripts = spendingUtxos.map((utxo) =>
       addressToPkScript(this.getAddress(utxo.keyIndex))
     );
     const spendingValues = spendingUtxos.map((utxo) => BigInt(utxo.value));
+
+    {
+      const psbt = packTxToPSBT(spendingTx, spendingPkScripts, spendingValues);
+      console.info("PSBT:");
+      console.info(bufToHex(psbt));
+      console.info(btoa(String.fromCharCode(...psbt)));
+    }
 
     for (let utxoIndex = 0; utxoIndex < spendingUtxos.length; utxoIndex++) {
       const utxo = spendingUtxos[utxoIndex];

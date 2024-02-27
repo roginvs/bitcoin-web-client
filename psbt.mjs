@@ -1,11 +1,15 @@
-import { packTx, packVarInt } from "./bitcoin/protocol/messages.create.mjs";
+import {
+  packTx,
+  packUint64,
+  packVarInt,
+} from "./bitcoin/protocol/messages.create.mjs";
 import { joinBuffers } from "./bitcoin/utils/joinBuffers.mjs";
 
 /**
  * @typedef {{
  *   keyType: number;
  *   keyData?: Uint8Array;
- *   valueData: Uint8Array
+ *   valueData: Uint8Array | Uint8Array[]
  * }} KeyPair
  */
 
@@ -26,9 +30,19 @@ function packKeyPair(keyPair) {
     out.push(keyPair.keyData);
   }
 
-  const valueLen = packVarInt(keyPair.valueData.length);
+  const valueLen = packVarInt(
+    Array.isArray(keyPair.valueData)
+      ? keyPair.valueData.reduce((acc, cur) => acc + cur.length, 0)
+      : keyPair.valueData.length
+  );
   out.push(valueLen);
-  out.push(keyPair.valueData);
+  if (Array.isArray(keyPair.valueData)) {
+    for (const valueDataItem of keyPair.valueData) {
+      out.push(valueDataItem);
+    }
+  } else {
+    out.push(keyPair.valueData);
+  }
   return out;
 }
 
@@ -49,10 +63,21 @@ function packMap(keyPairs) {
 
 const PSBT_GLOBAL_UNSIGNED_TX = 0x00;
 
+const PSBT_IN_WITNESS_UTXO = 0x01;
+
 /**
  * @param {import("./bitcoin/protocol/types.js").BitcoinTransaction} tx
+ * @param {import("./bitcoin/protocol/messages.types.js").PkScript[]} spendingPkScripts
+ * @param {bigint[]} spendingValues
  */
-export function packTxToPSBT(tx) {
+export function packTxToPSBT(tx, spendingPkScripts, spendingValues) {
+  if (tx.txIn.length !== spendingPkScripts.length) {
+    throw new Error(`Mismatch spendingPkScripts length`);
+  }
+  if (tx.txIn.length !== spendingValues.length) {
+    throw new Error(`Mismatch spendingValues length`);
+  }
+
   const packedTx = packTx({
     ...tx,
     txIn: tx.txIn.map((txIn) => ({
@@ -74,7 +99,18 @@ export function packTxToPSBT(tx) {
   ]);
 
   const inputMaps = tx.txIn
-    .map((txIn) => packMap([]))
+    .map((txIn, index) =>
+      packMap([
+        {
+          keyType: PSBT_IN_WITNESS_UTXO,
+          valueData: [
+            new Uint8Array(packUint64(spendingValues[index])),
+            packVarInt(spendingPkScripts.length),
+            new Uint8Array(spendingPkScripts[index]),
+          ],
+        },
+      ])
+    )
     .reduce((acc, cur) => [...acc, ...cur], []);
   const outputMaps = tx.txOut
     .map((txOut) => packMap([]))
