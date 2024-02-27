@@ -247,8 +247,7 @@ export class BitcoinWallet {
 
     {
       const psbt = packTxToPSBT(spendingTx, spendingPkScripts, spendingValues);
-      console.info("PSBT:");
-      console.info(bufToHex(psbt));
+      console.info("PSBT (to use in lnd):");
       console.info(btoa(String.fromCharCode(...psbt)));
     }
 
