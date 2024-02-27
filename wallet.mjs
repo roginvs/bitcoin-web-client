@@ -19,6 +19,7 @@ import { encodeArrayToBase64 } from "./bitcoin/utils/encodeArrayToBase64.mjs";
 import { joinBuffers } from "./bitcoin/utils/joinBuffers.mjs";
 import { stringToUTF8Array } from "./bitcoin/utils/stringToUtf8Array.mjs";
 import { encodePrefixedWif, parsePrefixedWif } from "./bitcoin/utils/wif.mjs";
+import { packTxToPSBT } from "./psbt.mjs";
 
 const DUST_LIMIT = 1000;
 /**
@@ -239,6 +240,12 @@ export class BitcoinWallet {
         ),
     };
 
+    console.info(spendingTx);
+
+    console.info("PSBT:");
+    console.info(bufToHex(packTxToPSBT(spendingTx)));
+    console.info(btoa(String.fromCharCode(...packTxToPSBT(spendingTx))));
+
     const spendingPkScripts = spendingUtxos.map((utxo) =>
       addressToPkScript(this.getAddress(utxo.keyIndex))
     );
@@ -314,6 +321,7 @@ export class BitcoinWallet {
 
     const packedTx = packTx(spendingTx);
 
+    console.info("Signed transaction:");
     console.info(bufToHex(packedTx));
     console.info(readTx(packedTx)[0]);
 
