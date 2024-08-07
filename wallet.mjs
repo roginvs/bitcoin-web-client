@@ -338,6 +338,7 @@ export class BitcoinWallet {
    * @param {import("./bitcoin/protocol/messages.types.js").TransactionPayload} txData
    */
   async sendTx(txData) {
+    // TODO: Fallback to another service if this one fails
     const url = `https://blockstream.info/api/tx`;
 
     const txHex = bufToHex(txData);
