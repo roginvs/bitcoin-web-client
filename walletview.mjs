@@ -16,6 +16,20 @@ import { BitcoinWallet } from "./wallet.mjs";
 import { btcStrToSat, satToBtcStr } from "./btc_and_sat.mjs";
 
 /**
+ * @param {string} url
+ */
+function openLinkInNewWindow(url) {
+  const link = document.createElement("a");
+  link.href = url;
+  link.target = "_blank";
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => {
+    document.body.removeChild(link);
+  }, 1000);
+}
+
+/**
  * @typedef {Record<string, number>} FeeEstimates
  */
 
@@ -74,18 +88,15 @@ function WalletTxSendView({
 
   const onOkClick = () => {
     {
-      const link = document.createElement("a");
       const txIdArray = [...new Uint8Array(tx.txid)].reverse();
 
-      link.href = `https://www.blockchain.com/explorer/transactions/btc/${bufToHex(
-        new Uint8Array(txIdArray).buffer
-      )}`;
-      link.target = "_blank";
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => {
-        document.body.removeChild(link);
-      }, 1000);
+      const txHex = bufToHex(new Uint8Array(txIdArray).buffer);
+      openLinkInNewWindow(
+        `https://www.blockchain.com/explorer/transactions/btc/${txHex}`
+      );
+      openLinkInNewWindow(
+        `https://blockchair.com/bitcoin/transaction/${txHex}`
+      );
     }
     onClose();
   };
