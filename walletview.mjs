@@ -91,9 +91,9 @@ function WalletTxSendView({
       const txIdArray = [...new Uint8Array(tx.txid)].reverse();
 
       const txHex = bufToHex(new Uint8Array(txIdArray).buffer);
-      openLinkInNewWindow(
-        `https://www.blockchain.com/explorer/transactions/btc/${txHex}`
-      );
+      // openLinkInNewWindow(
+      //   `https://www.blockchain.com/explorer/transactions/btc/${txHex}`
+      // );
       openLinkInNewWindow(
         `https://blockchair.com/bitcoin/transaction/${txHex}`
       );
