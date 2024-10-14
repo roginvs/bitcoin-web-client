@@ -289,7 +289,11 @@ export function WalletView({ wallet, onLogout }) {
   };
 
   const [feeEstimates, setFeeEstimates] = useState(
-    /** @type {FeeEstimates | null} */ null
+    /** @type {FeeEstimates | null} */ (null)
+  );
+
+  const [feeButtons, setFeeButtons] = useState(
+    /** @type {null | number[]} */ (null)
   );
 
   const isHaveUtxos = !!utxos;
@@ -300,7 +304,18 @@ export function WalletView({ wallet, onLogout }) {
     }
     fetch("https://blockstream.info/api/fee-estimates")
       .then((res) => res.json())
-      .then((estimates) => setFeeEstimates(estimates));
+      .then((/** @type {FeeEstimates}*/ estimates) => {
+        setFeeEstimates(estimates);
+        const simpleTxSizeVbytes = 150;
+        setFeeButtons(
+          ["25", "10", "1"].map((targetBlocks) =>
+            Math.round(estimates[targetBlocks] * simpleTxSizeVbytes)
+          )
+        );
+      })
+      .catch(() => {
+        setFeeButtons([1500, 5000, 10000]);
+      });
   }, [isHaveUtxos]);
 
   const [btcPrice, setBtcPrice] = useState(/** @type {number | null} */ null);
@@ -492,15 +507,15 @@ export function WalletView({ wallet, onLogout }) {
                         setFeeStr(e.target.value);
                       }}
                     />
-                    <button class="btn" onClick=${() => setFeeStr("0.000025")}>
-                      2500sat
-                    </button>
-                    <button class="btn" onClick=${() => setFeeStr("0.00005")}>
-                      5000sat
-                    </button>
-                    <button class="btn" onClick=${() => setFeeStr("0.0001")}>
-                      10000sat
-                    </button>
+                    ${feeButtons?.map(
+                      (feeSat) =>
+                        html`<button
+                          class="btn"
+                          onClick=${() => setFeeStr(satToBtcStr(feeSat))}
+                        >
+                          ${feeSat}sat
+                        </button>`
+                    )}
                   </div>
                   <button
                     class="btn"
