@@ -325,29 +325,34 @@ export function WalletView({ wallet, onLogout }) {
       return;
     }
     (async () => {
-      const price1 = await fetch(
-        "https://api.blockchain.com/v3/exchange/tickers/BTC-EUR",
-        {
-          headers: {
-            accept: "application/json",
-          },
+      {
+        const price = await fetch("https://blockchain.info/ticker")
+          .then((res) => res.json())
+          .then((data) => data.EUR?.last)
+          .catch(() => null);
+        if (price) {
+          setBtcPrice(price);
+          return;
         }
-      )
-        .then((res) => res.json())
-        .then((prices) => prices.price_24h)
-        .catch(() => null);
-      if (price1) {
-        setBtcPrice(price1);
-        return;
       }
 
-      const price2 = await fetch("https://blockchain.info/ticker")
-        .then((res) => res.json())
-        .then((data) => data.EUR?.last)
-        .catch(() => null);
-      if (price2) {
-        setBtcPrice(price2);
-        return;
+      {
+        // That one does not work anymore
+        const price = await fetch(
+          "https://api.blockchain.com/v3/exchange/tickers/BTC-EUR",
+          {
+            headers: {
+              accept: "application/json",
+            },
+          }
+        )
+          .then((res) => res.json())
+          .then((prices) => prices.price_24h)
+          .catch(() => null);
+        if (price) {
+          setBtcPrice(price);
+          return;
+        }
       }
 
       // TODO: Show warning that price is not available and show text input to enter it manually
