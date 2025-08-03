@@ -321,16 +321,37 @@ export function WalletView({ wallet, onLogout }) {
   const [btcPrice, setBtcPrice] = useState(/** @type {number | null} */ null);
   useEffect(() => {
     if (!isHaveUtxos) {
-      // Fetch this after we got utxos
+      // Fetch this after we got utxos because we fetch them from the same service
       return;
     }
-    fetch("https://api.blockchain.com/v3/exchange/tickers/BTC-EUR", {
-      headers: {
-        accept: "application/json",
-      },
-    })
-      .then((res) => res.json())
-      .then((prices) => setBtcPrice(prices.price_24h));
+    (async () => {
+      const price1 = await fetch(
+        "https://api.blockchain.com/v3/exchange/tickers/BTC-EUR",
+        {
+          headers: {
+            accept: "application/json",
+          },
+        }
+      )
+        .then((res) => res.json())
+        .then((prices) => prices.price_24h)
+        .catch(() => null);
+      if (price1) {
+        setBtcPrice(price1);
+        return;
+      }
+
+      const price2 = await fetch("https://blockchain.info/ticker")
+        .then((res) => res.json())
+        .then((data) => data.EUR?.last)
+        .catch(() => null);
+      if (price2) {
+        setBtcPrice(price2);
+        return;
+      }
+
+      // TODO: Show warning that price is not available and show text input to enter it manually
+    })();
   }, [isHaveUtxos]);
 
   const euroPrice = (/** @type {number | null} */ sat) => {
